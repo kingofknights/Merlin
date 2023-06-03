@@ -1,0 +1,5 @@
+set(HEADER Merlin.hpp)
+
+add_library(include INTERFACE ${HEADER})
+set_target_properties(include PROPERTIES LINKER_LANGUAGE CXX)
+target_link_libraries(include INTERFACE Boost::headers)
