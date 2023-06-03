@@ -1,9 +1,12 @@
 #include "../include/Merlin.hpp"
 
-Merlin::Merlin()
-{
+#include "../include/SocketServer.hpp"
 
+Merlin::Merlin() {
+	_socketServerPtr = std::make_shared<SocketServer>(54321);
 }
+
 void Merlin::run() {
-	_ioContext.run();
+	_socketServerPtr->startAccept();
+	_socketServerPtr->runServer();
 }

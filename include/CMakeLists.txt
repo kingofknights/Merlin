@@ -1,5 +1,10 @@
-set(HEADER Merlin.hpp)
+set(HEADER
+	    Merlin.hpp
+		SocketServer.hpp
+		Connection.hpp
+		Logger.hpp
+)
 
 add_library(include INTERFACE ${HEADER})
 set_target_properties(include PROPERTIES LINKER_LANGUAGE CXX)
-target_link_libraries(include INTERFACE Boost::headers)
+target_link_libraries(include INTERFACE Boost::headers fmt::fmt)
