@@ -2,6 +2,8 @@
 
 #include <boost/asio.hpp>
 
+class Connection;
+using ConnectionPtrT = std::shared_ptr<Connection>;
 class SocketServer {
 public:
 	SocketServer(int port_);
@@ -18,4 +20,5 @@ private:
 	boost::asio::ip::tcp::endpoint _endpoint;
 	boost::asio::ip::tcp::socket   _socket;
 	boost::system::error_code	   _errorCode;
+	ConnectionPtrT				   _connection;
 };

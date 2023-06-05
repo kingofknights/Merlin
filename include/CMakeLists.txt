@@ -3,6 +3,10 @@ set(HEADER
 		SocketServer.hpp
 		Connection.hpp
 		Logger.hpp
+		Structure.hpp
+		Enums.hpp
+		Global.hpp
+		Compression.h
 )
 
 add_library(include INTERFACE ${HEADER})

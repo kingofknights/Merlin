@@ -4,9 +4,9 @@ cmake_minimum_required(VERSION 3.14)
 project(Merlin
 	    VERSION 1.0
 		LANGUAGES C CXX
-)
+	    )
 
-
+include(FetchContent)
 set(CMAKE_CXX_CPPCHECK "")
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -26,13 +26,29 @@ find_package(Boost REQUIRED COMPONENTS system filesystem)
 include_directories(${Boost_INCLUDE_DIRS})
 message(STATUS ${Boost_INCLUDE_DIRS})
 
+
+FetchContent_Declare(
+	    xcd
+		GIT_REPOSITORY https://github.com/kingofknights/xcd.git
+		OVERRIDE_FIND_PACKAGE
+)
+
+FetchContent_GetProperties(xcd)
+if (NOT xcd_POPULATED)
+	FetchContent_Populate(xcd)
+	add_subdirectory(${xcd_SOURCE_DIR} ${xcd_BINARY_DIR})
+	include_directories(${xcd_SOURCE_DIR})
+	message(STATUS "xcd_SOURCE_DIR" ${xcd_SOURCE_DIR})
+	message(STATUS "xcd_BINARY_DIR" ${xcd_BINARY_DIR})
+endif ()
+
 if (WIN32)
-	    add_compile_definitions(WIN32_LEAN_AND_MEAN)
-		add_compile_definitions(WINVER=0x0A00)
-		add_compile_definitions(_WIN32_WINNT=0x0A00)
-		add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
-		add_compile_options(/bigobj)
-		include_directories($ENV{MSVC_INCLUDE_PATH})
+	add_compile_definitions(WIN32_LEAN_AND_MEAN)
+	add_compile_definitions(WINVER=0x0A00)
+	add_compile_definitions(_WIN32_WINNT=0x0A00)
+	add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
+	add_compile_options(/bigobj)
+	include_directories($ENV{MSVC_INCLUDE_PATH})
 
 endif ()
 
@@ -42,4 +58,4 @@ add_subdirectory(src)
 add_executable(${PROJECT_NAME} main.cpp)
 target_link_libraries(${PROJECT_NAME} INTERFACE include)
 target_link_libraries(${PROJECT_NAME} PRIVATE source)
-target_link_libraries(${PROJECT_NAME} PUBLIC fmt::fmt)
+target_link_libraries(${PROJECT_NAME} PUBLIC fmt::fmt xcd)
