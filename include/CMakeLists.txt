@@ -7,6 +7,7 @@ set(HEADER
 		Enums.hpp
 		Global.hpp
 		Compression.h
+		Strategy.hpp
 )
 
 add_library(include INTERFACE ${HEADER})

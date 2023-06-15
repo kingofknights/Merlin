@@ -4,12 +4,17 @@
 #include <nlohmann/json.hpp>
 
 #include "../include/Compression.h"
-#include "../include/Enums.hpp"
 #include "../include/Global.hpp"
 #include "../include/Logger.hpp"
 #include "../include/Structure.hpp"
 
 Connection::Connection(boost::asio::ip::tcp::socket socket_) : _socket(std::move(socket_)) {
+	_socket.set_option(boost::asio::ip::tcp::no_delay(true));
+	_socket.set_option(boost::asio::ip::tcp::socket::reuse_address(true));
+	//_socket.set_option(boost::asio::ip::tcp::socket::linger(true, 5));
+	//_socket.set_option(boost::asio::detail::socket_option::boolean<SOL_SOCKET, SO_REUSEPORT>(true));
+	//_socket.set_option(boost::asio::detail::socket_option::boolean<SOL_SOCKET, TCP_CORK>(true));
+
 	read();
 }
 
@@ -93,6 +98,85 @@ void Connection::handle_read(const boost::system::error_code &error_, size_t siz
 			long			order_id	= params.at(JSON_ORDER_ID).get<long>();
 			int				unique_id	= params.at(JSON_UNIQUE_ID).get<int>();
 			LOG(INFO, "Cancel Order {} {} {}", id, order_id, unique_id)
+			break;
+		}
+		case RequestType_SUBSCRIBE: {
+			unsigned char buffer[UNCOMPRESSION_BUFFER_SIZE]{};
+			int			  length = 0;
+			Compression::DeCompressData((const unsigned char *)request->Message.data(), request->CompressedMsgLen, buffer, &length);
+			std::stringstream ss;
+			ss << buffer;
+			LOG(INFO, "Subscribe {}", ss.str())
+
+			nlohmann::json		  subscribe = nlohmann::json::parse(ss);
+			const nlohmann::json &params	= subscribe.at(JSON_PARAMS);
+			const nlohmann::json &arguments = params.at(JSON_ARGUMENTS);
+			int					  pf		= params.at(JSON_PF_NUMBER).get<int>();
+			std::string			  name		= params.at(JSON_STRATEGY_NAME).get<std::string>();
+
+			StrategyParameterT strategyParameter;
+			for (auto iterator = arguments.begin(); iterator != arguments.end(); ++iterator) {
+				strategyParameter.emplace(iterator.key(), iterator.value().get<std::string>());
+			}
+			LOG(INFO, "Strategy subscribe {}", ss.str())
+			LOG(INFO, "PF {} Strategy {}", pf, name)
+			LOG(INFO, "Params {}", strategyParameter)
+
+			std::string status	 = Global::GetStrategyStatus(pf);
+			auto		response = Compression::CompressData(status, _userId, ResponseType_SUBCRIBED);
+			writeAsync((char *)&response, sizeof(RequestInPackT));
+			LOG(INFO, "response {}", status)
+			break;
+		}
+		case RequestType_APPLY: {
+			unsigned char buffer[UNCOMPRESSION_BUFFER_SIZE]{};
+			int			  length = 0;
+			Compression::DeCompressData((const unsigned char *)request->Message.data(), request->CompressedMsgLen, buffer, &length);
+			std::stringstream ss;
+			ss << buffer;
+			LOG(INFO, "Apply {}", ss.str())
+
+			nlohmann::json		  apply		= nlohmann::json::parse(ss);
+			const nlohmann::json &params	= apply.at(JSON_PARAMS);
+			const nlohmann::json &arguments = params.at(JSON_ARGUMENTS);
+			int					  pf		= params.at(JSON_PF_NUMBER).get<int>();
+			std::string			  name		= params.at(JSON_STRATEGY_NAME).get<std::string>();
+
+			StrategyParameterT strategyParameter;
+			for (auto iterator = arguments.begin(); iterator != arguments.end(); ++iterator) {
+				strategyParameter.emplace(iterator.key(), iterator.value().get<std::string>());
+			}
+			LOG(INFO, "Strategy Apply {}", ss.str())
+			LOG(INFO, "PF {} Strategy {}", pf, name)
+			LOG(INFO, "Params {}", strategyParameter)
+
+			std::string status	 = Global::GetStrategyStatus(pf);
+			auto		response = Compression::CompressData(status, _userId, ResponseType_APPLIED);
+			writeAsync((char *)&response, sizeof(RequestInPackT));
+			LOG(INFO, "response {}", status)
+			break;
+		}
+		case RequestType_UNSUBSCRIBE: {
+			unsigned char buffer[UNCOMPRESSION_BUFFER_SIZE]{};
+			int			  length = 0;
+			Compression::DeCompressData((const unsigned char *)request->Message.data(), request->CompressedMsgLen, buffer, &length);
+			std::stringstream ss;
+			ss << buffer;
+			LOG(INFO, "Unsubscribe {}", ss.str())
+
+			nlohmann::json		  apply	 = nlohmann::json::parse(ss);
+			const nlohmann::json &params = apply.at(JSON_PARAMS);
+
+			int			pf	 = params.at(JSON_PF_NUMBER).get<int>();
+			std::string name = params.at(JSON_STRATEGY_NAME).get<std::string>();
+
+			LOG(INFO, "Strategy unsubscribe {}", ss.str())
+			LOG(INFO, "PF {} Strategy {}", pf, name)
+
+			std::string status	 = Global::GetStrategyStatus(pf);
+			auto		response = Compression::CompressData(status, _userId, ResponseType_UNSUBSCRIBED);
+			writeAsync((char *)&response, sizeof(RequestInPackT));
+			LOG(INFO, "response {}", status)
 			break;
 		}
 		default: break;

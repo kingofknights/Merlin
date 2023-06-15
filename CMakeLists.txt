@@ -24,8 +24,6 @@ find_package(fmt REQUIRED)
 find_package(SQLiteCpp REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system filesystem)
 include_directories(${Boost_INCLUDE_DIRS})
-message(STATUS ${Boost_INCLUDE_DIRS})
-
 
 FetchContent_Declare(
 	    xcd
@@ -42,6 +40,21 @@ if (NOT xcd_POPULATED)
 	message(STATUS "xcd_BINARY_DIR" ${xcd_BINARY_DIR})
 endif ()
 
+FetchContent_Declare(
+	    lancelot
+		GIT_REPOSITORY https://github.com/kingofknights/Lancelot.git
+		OVERRIDE_FIND_PACKAGE
+)
+
+FetchContent_GetProperties(lancelot)
+if (NOT lancelot_POPULATED)
+	FetchContent_Populate(lancelot)
+	add_subdirectory(${lancelot_SOURCE_DIR} ${lancelot_BINARY_DIR})
+	include_directories(${lancelot_SOURCE_DIR}/include)
+	message(STATUS "lancelot_SOURCE_DIR" ${lancelot_SOURCE_DIR})
+	message(STATUS "lancelot_BINARY_DIR" ${lancelot_BINARY_DIR})
+endif ()
+
 if (WIN32)
 	add_compile_definitions(WIN32_LEAN_AND_MEAN)
 	add_compile_definitions(WINVER=0x0A00)
@@ -52,10 +65,12 @@ if (WIN32)
 
 endif ()
 
+add_subdirectory(API)
 add_subdirectory(include)
 add_subdirectory(src)
 
 add_executable(${PROJECT_NAME} main.cpp)
 target_link_libraries(${PROJECT_NAME} INTERFACE include)
-target_link_libraries(${PROJECT_NAME} PRIVATE source)
-target_link_libraries(${PROJECT_NAME} PUBLIC fmt::fmt xcd)
+target_link_libraries(${PROJECT_NAME} PRIVATE source API)
+target_link_libraries(${PROJECT_NAME} PUBLIC fmt::fmt Boost::filesystem xcd)
+target_link_libraries(${PROJECT_NAME} PRIVATE lancelot SQLiteCpp)

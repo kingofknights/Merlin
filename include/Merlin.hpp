@@ -1,15 +1,23 @@
 #pragma once
 #include <boost/asio.hpp>
 
-class SocketServer;
+#include "Structure.hpp"
 
-using SocketServerPtrT = std::shared_ptr<SocketServer>;
 class Merlin {
 public:
 	Merlin();
 
+	~Merlin();
+
 	void run();
 
+protected:
+	void AdaptorLoader(Exchange exchange_, std::string_view dllName_);
+
+	void import(std::string_view path_);
+
 private:
-	SocketServerPtrT _socketServerPtr;
+	SocketServerPtrT		_socketServerPtr;
+	ThreadGroupT			_threadGroup;
+	boost::asio::io_context _ioContext;
 };

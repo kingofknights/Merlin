@@ -3,15 +3,13 @@
 //
 
 #include "../include/Compression.h"
-#include "../include/Enums.hpp"
-#include "../include/Structure.hpp"
 
 #include <xcd/libxcd.h>
 
-
 #include "../include/Enums.hpp"
+#include "../include/Structure.hpp"
 
-RequestInPackT Compression::CompressData(std::string_view order, uint64_t uid, RequestType type_) {
+RequestInPackT Compression::CompressData(std::string_view order, uint64_t uid, int type_) {
 	RequestInPackT requestInPack;
 	requestInPack.UserIdentifier = uid;
 	requestInPack.TotalSize		 = sizeof(RequestInPackT);

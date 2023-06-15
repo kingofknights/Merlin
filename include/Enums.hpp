@@ -1,27 +1,28 @@
 #pragma once
 
-#define JSON_PARAMS "params"
-#define JSON_ID "id"
-#define JSON_TOKEN "token"
-#define JSON_PRICE "price"
-#define JSON_QUANTITY "quantity"
-#define JSON_CLIENT "client"
-#define JSON_SIDE "side"
-#define JSON_ORDER_ID "order_id"
-#define JSON_ARGUMENTS "arguments"
-#define JSON_PF_NUMBER "pf"
-#define JSON_UNIQUE_ID "unique_id"
-#define JSON_STRATEGY_NAME "name"
-#define JSON_ORDER_TYPE "type"
-#define JSON_TIME "time"
-#define JSON_FILL_QUANTITY "fill_quantity"
-#define JSON_FILL_PRICE "fill_price"
-#define JSON_REMAINING "remaining"
-#define JSON_MESSAGE "message"
+enum Exchange { Exchange_NSE_FUTURE = 0, Exchange_NSE_EQUITY, Exchange_NSE_CURRENCY, Exchange_BSE_FUTURE, Exchange_BSE_CURRENCY, Exchange_END };
+
+enum Instrument { Instrument_FUTURE = 0, Instrument_OPTION, Instrument_EQUITY, Instrument_OTHER };
+
+enum OptionType {
+	OptionType_NONE = 0,
+	OptionType_CALL,
+	OptionType_PUT,
+};
 
 enum SideType { Side_BUY = 0, Side_SELL };
 
 enum OrderType { OrderType_LIMIT = 0, OrderType_MARKET, OrderType_IOC, OrderType_SPREAD };
+
+enum StrategyStatus {
+	StrategyStatus_PENDING = 0,
+	StrategyStatus_ACTIVE,
+	StrategyStatus_APPLIED,
+	StrategyStatus_INACTIVE,
+	StrategyStatus_TERMINATED,
+	StrategyStatus_WAITING,
+	StrategyStatus_DISCONNECTED
+};
 
 enum RequestType {
 	RequestType_LOGIN = 0,
@@ -60,3 +61,20 @@ enum ResponseType {
 	// TRACKER
 	ResponseType_TRACKER,
 };
+
+enum OrderStatus {
+	OrderStatus_NONE = 0,
+	OrderStatus_PLACED,
+	OrderStatus_NEW,
+	OrderStatus_REPLACED,
+	OrderStatus_CANCELLED,
+	OrderStatus_NEW_REJECT,
+	OrderStatus_REPLACE_REJECT,
+	OrderStatus_CANCEL_REJECT,
+	OrderStatus_PARTIAL_FILLED,
+	OrderStatus_FILLED,
+	OrderStatus_PENDING,
+	OrderStatus_ADAPTOR_REJECT
+};
+
+enum OrderRequest { OrderRequest_NONE = 0, OrderRequest_NEW, OrderRequest_MODIFY, OrderRequest_CANCEL, OrderRequest_IOC, OrderRequest_CANCEL_ALL };
