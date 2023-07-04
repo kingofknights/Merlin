@@ -22,7 +22,7 @@ long	 GetOrderNumber(const OrderPacketPtrT& orderPacket_);
 char*	 GetClientCode(const OrderPacketPtrT& orderPacket_);
 char*	 GetAlgoID(const OrderPacketPtrT& orderPacket_);
 SideType GetSide(const OrderPacketPtrT& orderPacket_);
-int		 GetUniqueID(const OrderPacketT& orderPacket_);
+int		 GetUniqueID(const OrderPacketPtrT& orderPacket_);
 int		 GetLastQuantity(const OrderPacketPtrT& orderPacket_);
 int		 GetLastPrice(const OrderPacketPtrT& orderPacket_);
 int		 GetTotalQuantity(const OrderPacketPtrT& orderPacket_);
@@ -45,7 +45,7 @@ void SetTotalQuantity(const OrderPacketPtrT& orderPacket_, int quantity_);
 
 void SetCurrentOrderStatus(const OrderPacketPtrT& orderPacket_, OrderStatus status_);
 void SetPreviousOrderStatus(const OrderPacketPtrT& orderPacket_, OrderStatus status_);
-void SetUniqueID(const OrderPacketPtrT & orderPacket_, int unique_);
-};		// namespace OrderUtility
+void SetUniqueID(const OrderPacketPtrT& orderPacket_, int unique_);
+}  // namespace OrderUtility
 
 #endif	// MERLIN_API_ORDER_UTILITY_HPP

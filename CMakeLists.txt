@@ -55,6 +55,7 @@ if (NOT lancelot_POPULATED)
 	message(STATUS "lancelot_BINARY_DIR" ${lancelot_BINARY_DIR})
 endif ()
 
+
 if (WIN32)
 	add_compile_definitions(WIN32_LEAN_AND_MEAN)
 	add_compile_definitions(WINVER=0x0A00)
@@ -73,4 +74,4 @@ add_executable(${PROJECT_NAME} main.cpp)
 target_link_libraries(${PROJECT_NAME} INTERFACE include)
 target_link_libraries(${PROJECT_NAME} PRIVATE source API)
 target_link_libraries(${PROJECT_NAME} PUBLIC fmt::fmt Boost::filesystem xcd)
-target_link_libraries(${PROJECT_NAME} PRIVATE lancelot SQLiteCpp)
+target_link_libraries(${PROJECT_NAME} PRIVATE Lancelot SQLiteCpp)

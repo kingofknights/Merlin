@@ -1,6 +1,9 @@
 #include "../include/Connection.hpp"
 
 #include <boost/bind/bind.hpp>
+#include <boost/date_time/posix_time/conversion.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/date_time/posix_time/ptime.hpp>
 #include <nlohmann/json.hpp>
 
 #include "../include/Compression.h"
@@ -8,6 +11,17 @@
 #include "../include/Logger.hpp"
 #include "../include/Structure.hpp"
 
+boost::posix_time::ptime as_ptime(uintmax_t ns) {
+	return {{1970, 1, 1}, boost::posix_time::microseconds(ns / 1000)};
+}
+
+const std::string timeStampToHReadble(time_t rawtime) {
+	std::string time = boost::posix_time::to_iso_extended_string(as_ptime(rawtime + 1.98e+13));
+	boost::algorithm::replace_first(time, "T", " ");
+	return time;
+}
+
+extern int id;
 Connection::Connection(boost::asio::ip::tcp::socket socket_) : _socket(std::move(socket_)) {
 	_socket.set_option(boost::asio::ip::tcp::no_delay(true));
 	_socket.set_option(boost::asio::ip::tcp::socket::reuse_address(true));
@@ -65,6 +79,29 @@ void Connection::handle_read(const boost::system::error_code &error_, size_t siz
 			SideType	side	 = params.at(JSON_SIDE).get<SideType>();
 			OrderType	type	 = params.at(JSON_ORDER_TYPE).get<OrderType>();
 			LOG(INFO, "New Order {} {} {} {} {} {} {} ", id, token, price, quantity, client, side, type)
+
+			{
+				nlohmann::json response;
+				nlohmann::json param;
+				response[JSON_ID]		  = ++id;
+				param[JSON_PF_NUMBER]	  = request->UserIdentifier;
+				param[JSON_TOKEN]		  = token;
+				param[JSON_UNIQUE_ID]	  = id;
+				param[JSON_QUANTITY]	  = quantity;
+				param[JSON_FILL_QUANTITY] = 0;
+				param[JSON_FILL_PRICE]	  = 0;
+				param[JSON_REMAINING]	  = quantity;
+				param[JSON_ORDER_ID]	  = (int)rand();
+				param[JSON_PRICE]		  = price;
+				param[JSON_SIDE]		  = side;
+				param[JSON_CLIENT]		  = client;
+				param[JSON_TIME]		  = timeStampToHReadble(std::chrono::system_clock::now().time_since_epoch().count());
+				param[JSON_MESSAGE]		  = "New Order Sucess";
+				response[JSON_PARAMS]	  = param;
+
+				auto response_ = Compression::CompressData(response.dump(), _userId, ResponseType_NEW);
+				writeAsync((char *)&response_, sizeof(RequestInPackT));
+			}
 			break;
 		}
 		case RequestType_MODIFY: {
