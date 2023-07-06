@@ -75,3 +75,5 @@ target_link_libraries(${PROJECT_NAME} INTERFACE include)
 target_link_libraries(${PROJECT_NAME} PRIVATE source API)
 target_link_libraries(${PROJECT_NAME} PUBLIC fmt::fmt Boost::filesystem xcd)
 target_link_libraries(${PROJECT_NAME} PRIVATE Lancelot SQLiteCpp)
+
+add_subdirectory(Demo)

@@ -4,17 +4,18 @@
 
 #include "../API/Adaptor.hpp"
 #include "../API/OrderUtility.hpp"
+#include "../API/Strategy.hpp"
 #include "../include/Connection.hpp"
-#include "../include/Strategy.hpp"
 #include "../include/Structure.hpp"
 
 using ContainerPtrContainerT = std::unordered_map<uint64_t, const Connection*>;
 
-static ContainerPtrContainerT ContainerPtrContainer;
 extern int					  id;
 extern int					  UniqueOrderPacketId;
 extern EventContainerT		  EventContainer;
 extern AdaptorContainerT	  AdaptorContainer;
+extern StrategyContainerT	  StrategyContainer;
+static ContainerPtrContainerT ContainerPtrContainer;
 
 void Global::NewConnectionRequested(uint64_t loginID_, const Connection* connection_) {
     ContainerPtrContainer.insert_or_assign(loginID_, connection_);
@@ -41,9 +42,9 @@ std::string Global::GetStrategyStatus(int pf_) {
     return json.dump();
 }
 
-void Global::UpdateEvent(int token_) {
-    auto iterator = EventContainer.find(token_);
-    if (iterator == EventContainer.end()) return;
+void Global::EventReceiver(int token_) {
+    const auto iterator = EventContainer.find(token_);
+    if (iterator == EventContainer.cend()) return;
 
     auto& list = iterator->second;
     for (const auto& [_, strategy_] : list) {
@@ -51,6 +52,22 @@ void Global::UpdateEvent(int token_) {
             strategy_->marketEvent(token_);
         }
     }
+}
+
+void Global::AdaptorLoader(ThreadGroupT& threadGroup_, std::string_view dll_, Exchange exchange_) {
+    auto dll = std::make_unique<boost::dll::shared_library>(dll_.data(), boost::dll::load_mode::rtld_lazy);
+    LOG(WARNING, "dll {} is loaded and has function {}", dll->is_loaded(), dll->has(ENTRY_FUNCTION_NAME))
+
+    // auto getDriver				= dll->get<AdaptorPtrT(ThreadGroupT&)>(ENTRY_FUNCTION_NAME);
+    // auto adaptor				= std::invoke(getDriver, threadGroup_);
+    // AdaptorContainer[exchange_] = {adaptor, std::move(dll)};
+}
+
+void Global::AlogrithmLoader(std::string_view dll_, int pf_, StrategyParameterT param_) {
+    auto dll	   = std::make_unique<boost::dll::shared_library>(dll_.data(), boost::dll::load_mode::rtld_lazy);
+    auto getDriver = dll->get<StrategyPtrT(int, StrategyParameterT)>(ENTRY_FUNCTION_NAME);
+    auto strategy  = std::invoke(getDriver, pf_, param_);
+    StrategyContainer.emplace(pf_, strategy);
 }
 
 OrderPacketPtrT Global::RegisterOrderPacket(int token_, SideType side_, const std::string& client_, const std::string& algo_, int ioc_, const StrategyPtrT& strategy_) {
@@ -68,23 +85,25 @@ OrderPacketPtrT Global::RegisterOrderPacket(int token_, SideType side_, const st
     OrderUtility::SetLastQuantity(orderPacket, 0);
     OrderUtility::SetOrderNumber(orderPacket, 0);
     OrderUtility::SetSide(orderPacket, side_);
-
-    orderPacket->OrderDetails.PF = 0;
-
-    std::memset(orderPacket->OrderDetails.ClientCode, '\0', CLIENT_CODE_LENGTH);
-    std::memset(orderPacket->OrderDetails.AlgoID, '\0', ALGO_ID_LENGTH);
-    std::memcpy(orderPacket->OrderDetails.ClientCode, client_.data(), std::min(int(client_.length()), CLIENT_CODE_LENGTH));
-    std::memcpy(orderPacket->OrderDetails.AlgoID, algo_.data(), std::min(int(algo_.length()), ALGO_ID_LENGTH));
-
+    OrderUtility::SetPF(orderPacket, 0);
+    OrderUtility::SetClientCode(orderPacket, client_);
+    OrderUtility::SetAlgoID(orderPacket, algo_);
     OrderUtility::SetCurrentOrderStatus(orderPacket, OrderStatus_NONE);
     OrderUtility::SetPreviousOrderStatus(orderPacket, OrderStatus_NONE);
+
     return orderPacket;
 }
 
 void Global::PlaceOrder(const OrderPacketPtrT& orderPacket_, int price_, int quantity_, OrderRequest request_) {
-    if (orderPacket_->Internal.AdaptorPtr and orderPacket_->Internal.AdaptorPtr->execute(orderPacket_, price_, quantity_, request_)) {
+    if (not orderPacket_->Internal.AdaptorPtr) return;
+
+    auto orderStatus = OrderUtility::GetCurrentOrderStatus(orderPacket_);
+    OrderUtility::SetCurrentOrderStatus(orderPacket_, OrderStatus_PENDING);
+
+    if (orderPacket_->Internal.AdaptorPtr->execute(orderPacket_, price_, quantity_, request_)) {
         OrderUtility::SetPrice(orderPacket_, price_);
         OrderUtility::SetQuantity(orderPacket_, quantity_);
-        OrderUtility::SetCurrentOrderStatus(orderPacket_, OrderStatus_PENDING);
+    } else {
+        OrderUtility::SetCurrentOrderStatus(orderPacket_, orderStatus);
     }
 }

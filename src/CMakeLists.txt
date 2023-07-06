@@ -4,7 +4,6 @@ set (SOURCES
 		Connection.cpp
 		Global.cpp
 		Compression.cpp
-		Strategy.cpp
 		External.cpp
 	)
 

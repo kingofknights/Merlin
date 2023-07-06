@@ -1,11 +1,10 @@
 #include "Adaptor.hpp"
 
 #include "../API/OrderUtility.hpp"
-#include "../include/Strategy.hpp"
+#include "../API/Strategy.hpp"
 #include "../include/Structure.hpp"
 
 extern GlobalManualOrderPacketT GlobalManualOrderPacket;
-Adaptor::Adaptor(boost::asio::io_context &ioContext_, ThreadGroupT &threadContainer_) {}
 
 void Adaptor::OrderResponse(const OrderPacketPtrT &order_, OrderStatus status_) {
     order_->PreviousStatus = order_->CurrentStatus;
