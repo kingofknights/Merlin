@@ -1,2 +1,2 @@
 # Merlin
-Generic Backend for Stock Market Trading.
+Generic Backend for Stock Market Trading
