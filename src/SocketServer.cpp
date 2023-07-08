@@ -12,9 +12,7 @@ SocketServer::SocketServer(int port_) : _acceptor(_ioContext), _endpoint(boost::
 	_acceptor.listen();
 }
 
-void SocketServer::startAccept() {
-	_acceptor.async_accept(_socket, boost::bind(&SocketServer::handleAccept, this, boost::asio::placeholders::error));
-}
+void SocketServer::startAccept() { _acceptor.async_accept(_socket, boost::bind(&SocketServer::handleAccept, this, boost::asio::placeholders::error)); }
 
 void SocketServer::handleAccept(const boost::system::error_code& error_) {
 	if (!error_) {

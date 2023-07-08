@@ -1,13 +1,13 @@
 set(HEADER
-	    Merlin.hpp
-		SocketServer.hpp
-		Connection.hpp
-		Logger.hpp
-		Structure.hpp
-		Enums.hpp
-		Global.hpp
-		Compression.h
-)
+        Merlin.hpp
+        SocketServer.hpp
+        Connection.hpp
+        Logger.hpp
+        Structure.hpp
+        Enums.hpp
+        Global.hpp
+        Compression.h
+        )
 
 add_library(include INTERFACE ${HEADER})
 set_target_properties(include PROPERTIES LINKER_LANGUAGE CXX)

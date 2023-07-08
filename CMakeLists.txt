@@ -2,9 +2,9 @@
 cmake_minimum_required(VERSION 3.14)
 
 project(Merlin
-	    VERSION 1.0
-		LANGUAGES C CXX
-	    )
+        VERSION 1.0
+        LANGUAGES C CXX
+        )
 
 include(FetchContent)
 set(CMAKE_CXX_CPPCHECK "")
@@ -26,43 +26,43 @@ find_package(Boost REQUIRED COMPONENTS system filesystem)
 include_directories(${Boost_INCLUDE_DIRS})
 
 FetchContent_Declare(
-	    xcd
-		GIT_REPOSITORY https://github.com/kingofknights/xcd.git
-		OVERRIDE_FIND_PACKAGE
+        xcd
+        GIT_REPOSITORY https://github.com/kingofknights/xcd.git
+        OVERRIDE_FIND_PACKAGE
 )
 
 FetchContent_GetProperties(xcd)
 if (NOT xcd_POPULATED)
-	FetchContent_Populate(xcd)
-	add_subdirectory(${xcd_SOURCE_DIR} ${xcd_BINARY_DIR})
-	include_directories(${xcd_SOURCE_DIR})
-	message(STATUS "xcd_SOURCE_DIR" ${xcd_SOURCE_DIR})
-	message(STATUS "xcd_BINARY_DIR" ${xcd_BINARY_DIR})
+    FetchContent_Populate(xcd)
+    add_subdirectory(${xcd_SOURCE_DIR} ${xcd_BINARY_DIR})
+    include_directories(${xcd_SOURCE_DIR})
+    message(STATUS "xcd_SOURCE_DIR" ${xcd_SOURCE_DIR})
+    message(STATUS "xcd_BINARY_DIR" ${xcd_BINARY_DIR})
 endif ()
 
 FetchContent_Declare(
-	    lancelot
-		GIT_REPOSITORY https://github.com/kingofknights/Lancelot.git
-		OVERRIDE_FIND_PACKAGE
+        lancelot
+        GIT_REPOSITORY https://github.com/kingofknights/Lancelot.git
+        OVERRIDE_FIND_PACKAGE
 )
 
 FetchContent_GetProperties(lancelot)
 if (NOT lancelot_POPULATED)
-	FetchContent_Populate(lancelot)
-	add_subdirectory(${lancelot_SOURCE_DIR} ${lancelot_BINARY_DIR})
-	include_directories(${lancelot_SOURCE_DIR}/include)
-	message(STATUS "lancelot_SOURCE_DIR" ${lancelot_SOURCE_DIR})
-	message(STATUS "lancelot_BINARY_DIR" ${lancelot_BINARY_DIR})
+    FetchContent_Populate(lancelot)
+    add_subdirectory(${lancelot_SOURCE_DIR} ${lancelot_BINARY_DIR})
+    include_directories(${lancelot_SOURCE_DIR}/include)
+    message(STATUS "lancelot_SOURCE_DIR" ${lancelot_SOURCE_DIR})
+    message(STATUS "lancelot_BINARY_DIR" ${lancelot_BINARY_DIR})
 endif ()
 
 
 if (WIN32)
-	add_compile_definitions(WIN32_LEAN_AND_MEAN)
-	add_compile_definitions(WINVER=0x0A00)
-	add_compile_definitions(_WIN32_WINNT=0x0A00)
-	add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
-	add_compile_options(/bigobj)
-	include_directories($ENV{MSVC_INCLUDE_PATH})
+    add_compile_definitions(WIN32_LEAN_AND_MEAN)
+    add_compile_definitions(WINVER=0x0A00)
+    add_compile_definitions(_WIN32_WINNT=0x0A00)
+    add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
+    add_compile_options(/bigobj)
+    include_directories($ENV{MSVC_INCLUDE_PATH})
 
 endif ()
 

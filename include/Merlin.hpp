@@ -5,17 +5,17 @@
 
 class Merlin {
 public:
-    Merlin();
+	Merlin();
 
-    ~Merlin();
+	~Merlin();
 
-    void run();
+	void run();
 
 protected:
-    void import(std::string_view path_);
+	void import(std::string_view path_);
 
 private:
-    SocketServerPtrT		_socketServerPtr;
-    ThreadGroupT			_threadGroup;
-    boost::asio::io_context _ioContext;
+	SocketServerPtrT		_socketServerPtr;
+	ThreadGroupT			_threadGroup;
+	boost::asio::io_context _ioContext;
 };

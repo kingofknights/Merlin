@@ -40,4 +40,5 @@ AllowShortEnumsOnASingleLine: false
 AllowShortLambdasOnASingleLine: All
 
 AlignArrayOfStructures: Right
+NamespaceIndentation: All
 ...

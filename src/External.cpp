@@ -1,10 +1,10 @@
 #include "../include/Structure.hpp"
 
-int id;
-int UniqueOrderPacketId;
+namespace details {
+	int				   _globalJsonResponseUniqueID;
+	int				   UniqueOrderPacketId;
+	EventContainerT	   _globalEventContainer;
+	StrategyContainerT _globalStrategyContainer;
+	AdaptorContainerT  _globalAdaptorContainer;
 
-StrategyContainerT		 StrategyContainer;
-EventContainerT			 EventContainer;
-TokenToFutureTokenT		 TokenToFutureToken;
-AdaptorContainerT		 AdaptorContainer;
-GlobalManualOrderPacketT GlobalManualOrderPacket;
+}  // namespace details

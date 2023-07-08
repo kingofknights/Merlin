@@ -1,20 +1,18 @@
 #pragma once
 
-enum Exchange { Exchange_NSE_FUTURE = 0, Exchange_NSE_EQUITY, Exchange_NSE_CURRENCY, Exchange_BSE_FUTURE, Exchange_BSE_CURRENCY, Exchange_END };
-
-enum Instrument { Instrument_FUTURE = 0, Instrument_OPTION, Instrument_EQUITY, Instrument_OTHER };
-
-enum OptionType {
-	OptionType_NONE = 0,
-	OptionType_CALL,
-	OptionType_PUT,
+enum SideType : int {
+	Side_BUY = 0,
+	Side_SELL
 };
 
-enum SideType { Side_BUY = 0, Side_SELL };
+enum OrderType : int {
+	OrderType_LIMIT = 0,
+	OrderType_MARKET,
+	OrderType_IOC,
+	OrderType_SPREAD
+};
 
-enum OrderType { OrderType_LIMIT = 0, OrderType_MARKET, OrderType_IOC, OrderType_SPREAD };
-
-enum StrategyStatus {
+enum StrategyStatus : int {
 	StrategyStatus_PENDING = 0,
 	StrategyStatus_ACTIVE,
 	StrategyStatus_APPLIED,
@@ -24,7 +22,7 @@ enum StrategyStatus {
 	StrategyStatus_DISCONNECTED
 };
 
-enum RequestType {
+enum RequestType : int {
 	RequestType_LOGIN = 0,
 	// ORDER
 	RequestType_NEW,
@@ -37,7 +35,7 @@ enum RequestType {
 	RequestType_SUBSCRIBE_APPLY,
 };
 
-enum ResponseType {
+enum ResponseType : int {
 	// ORDER
 	ResponseType_PLACED = 0,
 	ResponseType_NEW,
@@ -62,7 +60,7 @@ enum ResponseType {
 	ResponseType_TRACKER,
 };
 
-enum OrderStatus {
+enum OrderStatus : int {
 	OrderStatus_NONE = 0,
 	OrderStatus_PLACED,
 	OrderStatus_NEW,
@@ -77,4 +75,11 @@ enum OrderStatus {
 	OrderStatus_ADAPTOR_REJECT
 };
 
-enum OrderRequest { OrderRequest_NONE = 0, OrderRequest_NEW, OrderRequest_MODIFY, OrderRequest_CANCEL, OrderRequest_IOC, OrderRequest_CANCEL_ALL };
+enum OrderRequest : int {
+	OrderRequest_NONE = 0,
+	OrderRequest_NEW,
+	OrderRequest_MODIFY,
+	OrderRequest_CANCEL,
+	OrderRequest_IOC,
+	OrderRequest_CANCEL_ALL
+};

@@ -9,19 +9,17 @@
 #include "../include/Enums.hpp"
 #include "../include/Structure.hpp"
 
-RequestInPackT Compression::CompressData(std::string_view order, uint64_t uid, int type_) {
+RequestInPackT Compression::Encrypt(std::string_view order_, uint64_t uid_, int type_) {
 	RequestInPackT requestInPack;
-	requestInPack.UserIdentifier = uid;
+	requestInPack.UserIdentifier = uid_;
 	requestInPack.TotalSize		 = sizeof(RequestInPackT);
 	requestInPack.Type			 = type_;
 	int			  CompressedDataLength;
 	unsigned char CompressedData[512];
-	xcdCompress(reinterpret_cast<const unsigned char*>(order.data()), order.length(), CompressedData, &CompressedDataLength);
+	xcdCompress(reinterpret_cast<const unsigned char*>(order_.data()), order_.length(), CompressedData, &CompressedDataLength);
 	requestInPack.CompressedMsgLen = CompressedDataLength;
 	memcpy(requestInPack.Message.data(), CompressedData, CompressedDataLength);
 	return requestInPack;
 }
 
-int Compression::DeCompressData(const unsigned char* data, int size, unsigned char* unCompressedData, int* unCompressedDataLength) {
-	return xcdDecompress(data, size, unCompressedData, unCompressedDataLength);
-}
+int Compression::Decrypt(const unsigned char* data_, int size_, unsigned char* rawData_, int* rawLength_) { return xcdDecompress(data_, size_, rawData_, rawLength_); }

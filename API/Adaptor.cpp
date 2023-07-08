@@ -6,33 +6,29 @@
 
 extern GlobalManualOrderPacketT GlobalManualOrderPacket;
 
-void Adaptor::OrderResponse(const OrderPacketPtrT &order_, OrderStatus status_) {
-    order_->PreviousStatus = order_->CurrentStatus;
-    order_->CurrentStatus  = status_;
+void Adaptor::OrderResponse(const OrderPacketPtrT& order_, OrderStatus status_) {
+	order_->PreviousStatus = order_->CurrentStatus;
+	order_->CurrentStatus  = status_;
 
-    auto uniqueId = OrderUtility::GetUniqueID(order_);
-    if (order_->Internal.StrategyPtr) {
-        order_->Internal.StrategyPtr->orderEvent(uniqueId);
-    } else {
-        switch (status_) {
-            case OrderStatus_NEW: {
-                GlobalManualOrderPacket.emplace(uniqueId, order_);
-                break;
-            }
-            case OrderStatus_FILLED:
-            case OrderStatus_CANCELLED: {
-                GlobalManualOrderPacket.erase(uniqueId);
-                break;
-            }
-            default: break;
-        }
-    }
+	auto uniqueId = OrderUtility::GetUniqueID(order_);
+	if (order_->Internal.StrategyPtr) {
+		order_->Internal.StrategyPtr->orderEvent(uniqueId);
+	} else {
+		switch (status_) {
+			case OrderStatus_NEW: {
+				GlobalManualOrderPacket.emplace(uniqueId, order_);
+				break;
+			}
+			case OrderStatus_FILLED:
+			case OrderStatus_CANCELLED: {
+				GlobalManualOrderPacket.erase(uniqueId);
+				break;
+			}
+			default: break;
+		}
+	}
 }
 
-void Adaptor::OnDisconnection(Exchange exchange_) {
-    LOG(ERROR, "Exchange got disconnected : {}", exchange_)
-}
+void Adaptor::OnDisconnection(Lancelot::ExchangeCode exchange_) { LOG(ERROR, "Exchange got disconnected : {}", static_cast<int>(exchange_)) }
 
-void Adaptor::OnConnection(Exchange exchange_) {
-    LOG(INFO, "Exchange connected : {}", exchange_)
-}
+void Adaptor::OnConnection(Lancelot::ExchangeCode exchange_) { LOG(INFO, "Exchange connected : {}", static_cast<int>(exchange_)) }

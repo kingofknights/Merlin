@@ -7,9 +7,8 @@
 
 struct RequestInPackT;
 
-class Compression {
-public:
-	static RequestInPackT CompressData(std::string_view data, uint64_t uid, int type_);
+namespace Compression {
+	RequestInPackT Encrypt(std::string_view order_, uint64_t uid_, int type_);
 
-	static int DeCompressData(const unsigned char *data, int size, unsigned char *unCompressedData, int *unCompressedDataLength);
-};
+	int Decrypt(const unsigned char* data_, int size_, unsigned char* rawData_, int* rawLength_);
+}  // namespace Compression
