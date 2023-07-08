@@ -11,14 +11,14 @@
 
 RequestInPackT Compression::Encrypt(std::string_view order_, uint64_t uid_, int type_) {
 	RequestInPackT requestInPack;
-	requestInPack.UserIdentifier = uid_;
-	requestInPack.TotalSize		 = sizeof(RequestInPackT);
-	requestInPack.Type			 = type_;
+	requestInPack._userIdentifier = uid_;
+	requestInPack._totalSize	  = sizeof(RequestInPackT);
+	requestInPack._type			  = type_;
 	int			  CompressedDataLength;
 	unsigned char CompressedData[512];
 	xcdCompress(reinterpret_cast<const unsigned char*>(order_.data()), order_.length(), CompressedData, &CompressedDataLength);
-	requestInPack.CompressedMsgLen = CompressedDataLength;
-	memcpy(requestInPack.Message.data(), CompressedData, CompressedDataLength);
+	requestInPack._encryptLength = CompressedDataLength;
+	memcpy(requestInPack._encryptMessage.data(), CompressedData, CompressedDataLength);
 	return requestInPack;
 }
 

@@ -51,37 +51,38 @@ void Connection::handleRead(const boost::system::error_code& error_, size_t size
 		return;
 	}
 	const auto* request = reinterpret_cast<const RequestInPackT*>(_buffer);
-	switch (request->Type) {
+	switch (request->_type) {
+		using namespace Lancelot;
 		case RequestType_LOGIN: {
-			LOG(INFO, "New Login Connection {} {}", request->Type, request->UserIdentifier)
+			LOG(INFO, "New Login Connection {} {}", request->_type, request->_userIdentifier)
 			if (_userId == 0) {
-				_userId = request->UserIdentifier;
-				Global::NewConnectionRequested(request->UserIdentifier, this);
+				_userId = request->_userIdentifier;
+				Global::NewConnectionRequested(request->_userIdentifier, this);
 			}
 			break;
 		};
 		case RequestType_NEW: {
 			unsigned char buffer[UNCOMPRESSION_BUFFER_SIZE]{};
 			int			  length = 0;
-			Compression::Decrypt((const unsigned char*)request->Message.data(), request->CompressedMsgLen, buffer, &length);
+			Compression::Decrypt((const unsigned char*)request->_encryptMessage.data(), request->_encryptLength, buffer, &length);
 			std::stringstream ss;
 			ss << buffer;
 			nlohmann::json	newOrder = nlohmann::json::parse(ss);
 			nlohmann::json& params	 = newOrder.at(JSON_PARAMS);
 
-			int			id		 = newOrder.at(JSON_ID).get<int>();
-			int			token	 = params.at(JSON_TOKEN).get<int>();
-			float		price	 = std::stof(params.at(JSON_PRICE).get<std::string>());
-			int			quantity = params.at(JSON_QUANTITY).get<int>();
-			std::string client	 = params.at(JSON_CLIENT).get<std::string>();
-			SideType	side	 = params.at(JSON_SIDE).get<SideType>();
-			OrderType	type	 = params.at(JSON_ORDER_TYPE).get<OrderType>();
+			int				   id		= newOrder.at(JSON_ID).get<int>();
+			int				   token	= params.at(JSON_TOKEN).get<int>();
+			float			   price	= std::stof(params.at(JSON_PRICE).get<std::string>());
+			int				   quantity = params.at(JSON_QUANTITY).get<int>();
+			std::string		   client	= params.at(JSON_CLIENT).get<std::string>();
+			Lancelot::SideType side		= params.at(JSON_SIDE).get<Lancelot::SideType>();
+			OrderType		   type		= params.at(JSON_ORDER_TYPE).get<OrderType>();
 
 			{
 				nlohmann::json response;
 				nlohmann::json param;
 				response[JSON_ID]		  = ++id;
-				param[JSON_PF_NUMBER]	  = request->UserIdentifier;
+				param[JSON_PF_NUMBER]	  = request->_userIdentifier;
 				param[JSON_TOKEN]		  = token;
 				param[JSON_UNIQUE_ID]	  = id;
 				param[JSON_QUANTITY]	  = quantity;
@@ -104,7 +105,7 @@ void Connection::handleRead(const boost::system::error_code& error_, size_t size
 		case RequestType_MODIFY: {
 			unsigned char buffer[UNCOMPRESSION_BUFFER_SIZE]{};
 			int			  length = 0;
-			Compression::Decrypt((const unsigned char*)request->Message.data(), request->CompressedMsgLen, buffer, &length);
+			Compression::Decrypt((const unsigned char*)request->_encryptMessage.data(), request->_encryptLength, buffer, &length);
 			std::stringstream ss;
 			ss << buffer;
 
@@ -122,7 +123,7 @@ void Connection::handleRead(const boost::system::error_code& error_, size_t size
 		case RequestType_CANCEL: {
 			unsigned char buffer[UNCOMPRESSION_BUFFER_SIZE]{};
 			int			  length = 0;
-			Compression::Decrypt((const unsigned char*)request->Message.data(), request->CompressedMsgLen, buffer, &length);
+			Compression::Decrypt((const unsigned char*)request->_encryptMessage.data(), request->_encryptLength, buffer, &length);
 			std::stringstream ss;
 			ss << buffer;
 
@@ -137,7 +138,7 @@ void Connection::handleRead(const boost::system::error_code& error_, size_t size
 		case RequestType_SUBSCRIBE: {
 			unsigned char buffer[UNCOMPRESSION_BUFFER_SIZE]{};
 			int			  length = 0;
-			Compression::Decrypt((const unsigned char*)request->Message.data(), request->CompressedMsgLen, buffer, &length);
+			Compression::Decrypt((const unsigned char*)request->_encryptMessage.data(), request->_encryptLength, buffer, &length);
 			std::stringstream ss;
 			ss << buffer;
 			LOG(INFO, "Subscribe {}", ss.str())
@@ -165,7 +166,7 @@ void Connection::handleRead(const boost::system::error_code& error_, size_t size
 		case RequestType_APPLY: {
 			unsigned char buffer[UNCOMPRESSION_BUFFER_SIZE]{};
 			int			  length = 0;
-			Compression::Decrypt((const unsigned char*)request->Message.data(), request->CompressedMsgLen, buffer, &length);
+			Compression::Decrypt((const unsigned char*)request->_encryptMessage.data(), request->_encryptLength, buffer, &length);
 			std::stringstream ss;
 			ss << buffer;
 			LOG(INFO, "Apply {}", ss.str())
@@ -193,7 +194,7 @@ void Connection::handleRead(const boost::system::error_code& error_, size_t size
 		case RequestType_UNSUBSCRIBE: {
 			unsigned char buffer[UNCOMPRESSION_BUFFER_SIZE]{};
 			int			  length = 0;
-			Compression::Decrypt((const unsigned char*)request->Message.data(), request->CompressedMsgLen, buffer, &length);
+			Compression::Decrypt((const unsigned char*)request->_encryptMessage.data(), request->_encryptLength, buffer, &length);
 			std::stringstream ss;
 			ss << buffer;
 			LOG(INFO, "Unsubscribe {}", ss.str())

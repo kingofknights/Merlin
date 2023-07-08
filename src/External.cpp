@@ -1,8 +1,8 @@
 #include "../include/Structure.hpp"
 
 namespace details {
-	int				   _globalJsonResponseUniqueID;
-	int				   UniqueOrderPacketId;
+	int				   _globalJsonResponseUniqueId;
+	int				   _globalUniqueOrderPacketId;
 	EventContainerT	   _globalEventContainer;
 	StrategyContainerT _globalStrategyContainer;
 	AdaptorContainerT  _globalAdaptorContainer;

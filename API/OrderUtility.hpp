@@ -8,7 +8,10 @@
 #include <memory>
 #include <string>
 
-enum SideType : int;
+namespace Lancelot {
+	enum SideType : int;
+}
+
 enum OrderStatus : int;
 struct OrderPacketT;
 using OrderPacketPtrT = std::shared_ptr<OrderPacketT>;
@@ -28,7 +31,7 @@ namespace OrderUtility {
 
 	char* GetAlgoID(const OrderPacketPtrT& orderPacket_);
 
-	SideType GetSide(const OrderPacketPtrT& orderPacket_);
+	Lancelot::SideType GetSide(const OrderPacketPtrT& orderPacket_);
 
 	int GetUniqueID(const OrderPacketPtrT& orderPacket_);
 
@@ -56,7 +59,7 @@ namespace OrderUtility {
 
 	void SetAlgoID(const OrderPacketPtrT& orderPacket_, const std::string& algo_);
 
-	void SetSide(const OrderPacketPtrT& orderPacket_, SideType side_);
+	void SetSide(const OrderPacketPtrT& orderPacket_, Lancelot::SideType side_);
 
 	void SetLastQuantity(const OrderPacketPtrT& orderPacket_, int quantity_);
 

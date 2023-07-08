@@ -11,25 +11,6 @@
 
 #include "Enums.hpp"
 
-#define JSON_PARAMS		   "params"
-#define JSON_ID			   "_globalJsonResponseUniqueID"
-#define JSON_TOKEN		   "token"
-#define JSON_PRICE		   "price"
-#define JSON_QUANTITY	   "quantity"
-#define JSON_CLIENT		   "client"
-#define JSON_SIDE		   "side"
-#define JSON_ORDER_ID	   "order_id"
-#define JSON_ARGUMENTS	   "arguments"
-#define JSON_PF_NUMBER	   "pf"
-#define JSON_UNIQUE_ID	   "unique_id"
-#define JSON_STRATEGY_NAME "name"
-#define JSON_ORDER_TYPE	   "type"
-#define JSON_TIME		   "time"
-#define JSON_FILL_QUANTITY "fill_quantity"
-#define JSON_FILL_PRICE	   "fill_price"
-#define JSON_REMAINING	   "remaining"
-#define JSON_MESSAGE	   "message"
-
 class Adaptor;
 class SocketServer;
 class Strategy;
@@ -37,34 +18,37 @@ class Strategy;
 using AdaptorPtrT	= std::shared_ptr<Adaptor>;
 using SharedLibPtrT = std::unique_ptr<boost::dll::shared_library>;
 
+namespace Lancelot {
+	enum SideType : int;
+}
 #pragma pack(push, 1)
 
 using RequestInPackT = struct RequestInPackT {
-	short				  TotalSize;
-	int					  Type;
-	uint64_t			  UserIdentifier;
-	int					  CompressedMsgLen;
-	std::array<char, 512> Message;
+	short				  _totalSize;
+	int					  _type;
+	uint64_t			  _userIdentifier;
+	int					  _encryptLength;
+	std::array<char, 512> _encryptMessage;
 };
 
 #define CLIENT_CODE_LENGTH 10
 #define ALGO_ID_LENGTH	   20
 
 using PositionT = struct PositionT {
-	int LastQuantity;
-	int LastPrice;
-	int TotalQuantity;
+	int _lastQuantity;
+	int _lastPrice;
+	int _totalQuantity;
 };
 
 using OrderDetailsT = struct OrderDetailsT {
-	bool	 Ioc;
-	int		 PF;
-	int		 Price;
-	int		 Quantity;
-	long	 OrderNumber;
-	char	 ClientCode[CLIENT_CODE_LENGTH];
-	char	 AlgoID[ALGO_ID_LENGTH];
-	SideType Side;
+	char			   _clientCode[CLIENT_CODE_LENGTH];
+	char			   _algoId[ALGO_ID_LENGTH];
+	bool			   _ioc;
+	int				   _pf;
+	int				   _price;
+	int				   _quantity;
+	Lancelot::SideType _side;
+	long			   _orderNumber;
 };
 
 class Strategy;
@@ -73,25 +57,25 @@ using StrategyPtrT = std::shared_ptr<Strategy>;
 using AdaptorPtrT  = std::shared_ptr<Adaptor>;
 
 using InternalT = struct InternalT {
-	Lancelot::ResultSetPtrT ResultSetPtr;
-	AdaptorPtrT				AdaptorPtr;
-	StrategyPtrT			StrategyPtr;
-	int						UniqueID;
+	Lancelot::ResultSetPtrT _resultSetPtr;
+	AdaptorPtrT				_adaptorPtr;
+	StrategyPtrT			_strategyPtr;
+	int						_uniqueId;
 };
 
 using OrderPacketT = struct OrderPacketT {
-	InternalT	  Internal;
-	OrderDetailsT OrderDetails;
-	PositionT	  Position;
+	InternalT	  _internal;
+	OrderDetailsT _orderDetails;
+	PositionT	  _position;
 
-	OrderRequest Request;
-	OrderStatus	 CurrentStatus;
-	OrderStatus	 PreviousStatus;
+	OrderRequest _lastRequest;
+	OrderStatus	 _currentStatus;
+	OrderStatus	 _previousStatus;
 };
 
 using AdaptorConnectionT = struct AdaptorConnectionT {
-	AdaptorPtrT	  AdaptorPtr;
-	SharedLibPtrT SharedLibPtr;
+	AdaptorPtrT	  _adaptorPtr;
+	SharedLibPtrT _sharedLibPtr;
 };
 
 #pragma pack(pop)
@@ -104,6 +88,5 @@ using StrategyPtrT			   = std::shared_ptr<Strategy>;
 using StrategyContainerT	   = std::unordered_map<int, StrategyPtrT>;
 using EventContainerT		   = std::unordered_map<int, StrategyContainerT>;
 using StrategyParameterT	   = std::unordered_map<std::string, std::string>;
-using TokenToFutureTokenT	   = std::unordered_map<int, int>;
 using OrderPacketPtrT		   = std::shared_ptr<OrderPacketT>;
 using GlobalManualOrderPacketT = std::unordered_map<int, OrderPacketPtrT>;

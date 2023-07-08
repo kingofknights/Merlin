@@ -14,12 +14,12 @@ Merlin::Merlin() : _socketServerPtr(std::make_shared<SocketServer>(9090)) { Glob
 
 Merlin::~Merlin() {
 	for (AdaptorConnectionT& adaptorConnection : details::_globalAdaptorContainer) {
-		if (adaptorConnection.AdaptorPtr) {
-			adaptorConnection.AdaptorPtr.reset();
+		if (adaptorConnection._adaptorPtr) {
+			adaptorConnection._adaptorPtr.reset();
 		}
-		if (adaptorConnection.SharedLibPtr) {
-			adaptorConnection.SharedLibPtr->unload();
-			adaptorConnection.SharedLibPtr.reset();
+		if (adaptorConnection._sharedLibPtr) {
+			adaptorConnection._sharedLibPtr->unload();
+			adaptorConnection._sharedLibPtr.reset();
 		}
 	}
 }

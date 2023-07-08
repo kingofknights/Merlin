@@ -6,7 +6,10 @@
 
 struct OrderPacketT;
 class Strategy;
-enum SideType : int;
+
+namespace Lancelot {
+	enum SideType : int;
+}
 
 using OrderPacketPtrT	 = std::shared_ptr<OrderPacketT>;
 using StrategyParameterT = std::unordered_map<std::string, std::string>;
@@ -36,7 +39,7 @@ public:
 protected:
 	void terminate();
 
-	OrderPacketPtrT getOrderPacket(int token_, SideType side_, const std::string& client_, const std::string& algo_, int ioc_);
+	OrderPacketPtrT getOrderPacket(int token_, Lancelot::SideType side_, const std::string& client_, const std::string& algo_, int ioc_);
 
 private:
 	void registerForData(int token_);

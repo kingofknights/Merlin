@@ -23,7 +23,7 @@ void Strategy::terminate() {
 	}
 }
 
-OrderPacketPtrT Strategy::getOrderPacket(int token_, SideType side_, const std::string& client_, const std::string& algo_, int ioc_) {
+OrderPacketPtrT Strategy::getOrderPacket(int token_, Lancelot::SideType side_, const std::string& client_, const std::string& algo_, int ioc_) {
 	return Global::RegisterOrderPacket(token_, side_, client_, algo_, ioc_, shared_from_this());
 }
 

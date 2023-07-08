@@ -11,26 +11,26 @@
 using ContainerPtrContainerT = std::unordered_map<uint64_t, const Connection*>;
 
 namespace details {
-	extern int					  _globalJsonResponseUniqueID;
-	extern int					  UniqueOrderPacketId;
+	extern int					  _globalJsonResponseUniqueId;
+	extern int					  _globalUniqueOrderPacketId;
 	extern EventContainerT		  _globalEventContainer;
 	extern AdaptorContainerT	  _globalAdaptorContainer;
 	extern StrategyContainerT	  _globalStrategyContainer;
-	static ContainerPtrContainerT ContainerPtrContainer;
+	static ContainerPtrContainerT _globalContainerPtrContainer;
 }  // namespace details
-void Global::NewConnectionRequested(uint64_t loginID_, const Connection* connection_) { details::ContainerPtrContainer.insert_or_assign(loginID_, connection_); }
+void Global::NewConnectionRequested(uint64_t loginID_, const Connection* connection_) { details::_globalContainerPtrContainer.insert_or_assign(loginID_, connection_); }
 
 void Global::ConnectionClosed(uint64_t loginID_) {
-	auto iterator = details::ContainerPtrContainer.find(loginID_);
-	if (iterator != details::ContainerPtrContainer.end()) {
+	auto iterator = details::_globalContainerPtrContainer.find(loginID_);
+	if (iterator != details::_globalContainerPtrContainer.end()) {
 		delete iterator->second;
-		details::ContainerPtrContainer.erase(iterator);
+		details::_globalContainerPtrContainer.erase(iterator);
 	}
 }
 
 std::string Global::GetStrategyStatus(int pf_) {
 	nlohmann::json json;
-	json[JSON_ID] = ++details::_globalJsonResponseUniqueID;
+	json[JSON_ID] = ++details::_globalJsonResponseUniqueId;
 
 	nlohmann::json params;
 	params[JSON_PF_NUMBER] = pf_;
@@ -67,12 +67,12 @@ void Global::AlgorithmLoader(std::string_view dll_, int pf_, const StrategyParam
 	details::_globalStrategyContainer.emplace(pf_, strategy);
 }
 
-OrderPacketPtrT Global::RegisterOrderPacket(int token_, SideType side_, const std::string& client_, const std::string& algo_, int ioc_, const StrategyPtrT& strategy_) {
-	OrderPacketPtrT orderPacket		   = std::make_shared<OrderPacketT>();
-	orderPacket->Internal.ResultSetPtr = Lancelot::ContractInfo::GetResultSet(token_);
-	orderPacket->Internal.StrategyPtr  = strategy_;
-	orderPacket->Internal.AdaptorPtr   = details::_globalAdaptorContainer[Lancelot::ContractInfo::GetExchange(token_)].AdaptorPtr;
-	orderPacket->Internal.UniqueID	   = ++details::UniqueOrderPacketId;
+OrderPacketPtrT Global::RegisterOrderPacket(int token_, Lancelot::SideType side_, const std::string& client_, const std::string& algo_, int ioc_, const StrategyPtrT& strategy_) {
+	OrderPacketPtrT orderPacket			 = std::make_shared<OrderPacketT>();
+	orderPacket->_internal._resultSetPtr = Lancelot::ContractInfo::GetResultSet(token_);
+	orderPacket->_internal._strategyPtr	 = strategy_;
+	orderPacket->_internal._adaptorPtr	 = details::_globalAdaptorContainer[Lancelot::ContractInfo::GetExchange(token_)]._adaptorPtr;
+	orderPacket->_internal._uniqueId	 = ++details::_globalUniqueOrderPacketId;
 
 	OrderUtility::SetIoc(orderPacket, ioc_);
 	OrderUtility::SetPrice(orderPacket, 0);
@@ -91,13 +91,13 @@ OrderPacketPtrT Global::RegisterOrderPacket(int token_, SideType side_, const st
 	return orderPacket;
 }
 
-void Global::PlaceOrder(const OrderPacketPtrT& orderPacket_, int price_, int quantity_, OrderRequest request_) {
-	if (not orderPacket_->Internal.AdaptorPtr) return;
+void Global::PlaceOrder(const OrderPacketPtrT& orderPacket_, int price_, int quantity_, Lancelot::OrderRequest request_) {
+	if (not orderPacket_->_internal._adaptorPtr) return;
 
 	auto orderStatus = OrderUtility::GetCurrentOrderStatus(orderPacket_);
 	OrderUtility::SetCurrentOrderStatus(orderPacket_, OrderStatus_PENDING);
 
-	if (orderPacket_->Internal.AdaptorPtr->execute(orderPacket_, price_, quantity_, request_)) {
+	if (orderPacket_->_internal._adaptorPtr->execute(orderPacket_, price_, quantity_, request_)) {
 		OrderUtility::SetPrice(orderPacket_, price_);
 		OrderUtility::SetQuantity(orderPacket_, quantity_);
 	} else {

@@ -10,12 +10,12 @@
 class Connection;
 class Strategy;
 struct OrderPacketT;
-enum SideType : int;
-enum OrderRequest : int;
 
 namespace Lancelot {
+	enum SideType : int;
+	enum OrderRequest : int;
 	enum ExchangeCode : int;
-}
+}  // namespace Lancelot
 
 using OrderPacketPtrT	 = std::shared_ptr<OrderPacketT>;
 using StrategyPtrT		 = std::shared_ptr<Strategy>;
@@ -38,7 +38,7 @@ namespace Global {
 
 	std::string GetStrategyStatus(int pf_);
 
-	OrderPacketPtrT RegisterOrderPacket(int token_, SideType side_, const std::string& client_, const std::string& algo_, int ioc_, const StrategyPtrT& strategy_);
+	OrderPacketPtrT RegisterOrderPacket(int token_, Lancelot::SideType side_, const std::string& client_, const std::string& algo_, int ioc_, const StrategyPtrT& strategy_);
 
-	void PlaceOrder(const OrderPacketPtrT& orderPacket_, int price_, int quantity_, OrderRequest request_);
+	void PlaceOrder(const OrderPacketPtrT& orderPacket_, int price_, int quantity_, Lancelot::OrderRequest request_);
 }  // namespace Global

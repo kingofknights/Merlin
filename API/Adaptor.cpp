@@ -7,12 +7,12 @@
 extern GlobalManualOrderPacketT GlobalManualOrderPacket;
 
 void Adaptor::OrderResponse(const OrderPacketPtrT& order_, OrderStatus status_) {
-	order_->PreviousStatus = order_->CurrentStatus;
-	order_->CurrentStatus  = status_;
+	order_->_previousStatus = order_->_currentStatus;
+	order_->_currentStatus	= status_;
 
 	auto uniqueId = OrderUtility::GetUniqueID(order_);
-	if (order_->Internal.StrategyPtr) {
-		order_->Internal.StrategyPtr->orderEvent(uniqueId);
+	if (order_->_internal._strategyPtr) {
+		order_->_internal._strategyPtr->orderEvent(uniqueId);
 	} else {
 		switch (status_) {
 			case OrderStatus_NEW: {

@@ -15,12 +15,12 @@ using ThreadGroupT	  = std::vector<ThreadPointerT>;
 class Adaptor;
 using AdaptorPtrT = std::shared_ptr<Adaptor>;
 
-enum OrderRequest : int;
 enum OrderStatus : int;
 
 namespace Lancelot {
 	enum ExchangeCode : int;
-};
+	enum OrderRequest : int;
+};	// namespace Lancelot
 
 class Adaptor {
 public:
@@ -37,7 +37,7 @@ public:
 
 	virtual void forwardAssemble(const OrderPacketPtrT& order_) = 0;
 
-	virtual bool execute(const OrderPacketPtrT& order_, int price_, int quantity_, OrderRequest request_) = 0;
+	virtual bool execute(const OrderPacketPtrT& order_, int price_, int quantity_, Lancelot::OrderRequest request_) = 0;
 
 	static void OrderResponse(const OrderPacketPtrT& order_, OrderStatus status_);
 
