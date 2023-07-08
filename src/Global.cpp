@@ -18,6 +18,7 @@ namespace details {
 	extern StrategyContainerT	  _globalStrategyContainer;
 	static ContainerPtrContainerT _globalContainerPtrContainer;
 }  // namespace details
+
 void Global::NewConnectionRequested(uint64_t loginID_, const Connection* connection_) { details::_globalContainerPtrContainer.insert_or_assign(loginID_, connection_); }
 
 void Global::ConnectionClosed(uint64_t loginID_) {
@@ -52,12 +53,20 @@ void Global::EventReceiver(int token_) {
 }
 
 void Global::AdaptorLoader(ThreadGroupT& threadGroup_, std::string_view dll_, Lancelot::ExchangeCode exchange_) {
-	auto dll = std::make_unique<boost::dll::shared_library>(dll_.data(), boost::dll::load_mode::rtld_lazy);
-	LOG(WARNING, "dll {} is loaded and has function {}", dll->is_loaded(), dll->has(ENTRY_FUNCTION_NAME))
+	AdaptorConnectionT connection;
+	connection._sharedLibPtr = std::make_unique<boost::dll::shared_library>(dll_.data(), boost::dll::load_mode::rtld_lazy);
+	LOG(INFO, "Adaptor request to open is loaded [{}], filename [{}]", connection._sharedLibPtr->is_loaded(), dll_)
+	LOG(INFO, "Adaptor [{}] , looking for [{}] found [{}]", dll_, ENTRY_FUNCTION_NAME, connection._sharedLibPtr->has(ENTRY_FUNCTION_NAME))
 
-	// auto getDriver				= dll->get<AdaptorPtrT(ThreadGroupT&)>(ENTRY_FUNCTION_NAME);
-	// auto adaptor				= std::invoke(getDriver, threadGroup_);
-	// _globalAdaptorContainer[exchange_] = {adaptor, std::move(dll)};
+	if (not connection._sharedLibPtr->is_loaded()) return;
+	if (not connection._sharedLibPtr->has(ENTRY_FUNCTION_NAME)) return;
+
+	auto getDriver = connection._sharedLibPtr->get<AdaptorPtrT(ThreadGroupT&)>(ENTRY_FUNCTION_NAME);
+
+	LOG(INFO, "Adaptor invoking the function [{}]", ENTRY_FUNCTION_NAME)
+	
+	connection._adaptorPtr						   = std::invoke(getDriver, threadGroup_);
+	details::_globalAdaptorContainer.at(exchange_) = std::move(connection);
 }
 
 void Global::AlgorithmLoader(std::string_view dll_, int pf_, const StrategyParameterT& param_) {

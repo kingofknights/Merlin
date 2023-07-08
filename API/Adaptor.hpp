@@ -26,13 +26,6 @@ class Adaptor {
 public:
 	virtual ~Adaptor() = default;
 
-	template <class Child>
-	static AdaptorPtrT CreateInstance(ThreadGroupT& threadGroup_) {
-		auto adaptor = std::make_unique<Child>();
-		adaptor->initialization(threadGroup_);
-		return adaptor;
-	}
-
 	virtual void initialization(ThreadGroupT& threadGroup_) = 0;
 
 	virtual void forwardAssemble(const OrderPacketPtrT& order_) = 0;
