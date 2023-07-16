@@ -1,34 +1,30 @@
-#include "Adaptor.hpp"
-
-#include "../API/OrderUtility.hpp"
-#include "../API/Strategy.hpp"
 #include "../include/Structure.hpp"
+#include "LancelotAPI.hpp"
 
-extern GlobalManualOrderPacketT GlobalManualOrderPacket;
+namespace Lancelot::API {
+	void Adaptor::OrderResponse(const Lancelot::API::StockPacketPtrT& stockPacket_, OrderStatus status_) {
+		stockPacket_->setPreviousStatus(stockPacket_->getCurrentStatus());
+		stockPacket_->setCurrentStatus(status_);
 
-void Adaptor::OrderResponse(const OrderPacketPtrT& order_, OrderStatus status_) {
-	order_->_previousStatus = order_->_currentStatus;
-	order_->_currentStatus	= status_;
-
-	auto uniqueId = OrderUtility::GetUniqueID(order_);
-	if (order_->_internal._strategyPtr) {
-		order_->_internal._strategyPtr->orderEvent(uniqueId);
-	} else {
-		switch (status_) {
-			case OrderStatus_NEW: {
-				GlobalManualOrderPacket.emplace(uniqueId, order_);
-				break;
+		auto uniqueId = stockPacket_->getUniqueClassIdentity();
+		if (stockPacket_->getStrategyPtr()) {
+			stockPacket_->getStrategyPtr()->orderEvent(uniqueId);
+		} else {
+			switch (status_) {
+				case OrderStatus_NEW: {
+					break;
+				}
+				case OrderStatus_FILLED:
+				case OrderStatus_CANCELLED: {
+					break;
+				}
+				default: break;
 			}
-			case OrderStatus_FILLED:
-			case OrderStatus_CANCELLED: {
-				GlobalManualOrderPacket.erase(uniqueId);
-				break;
-			}
-			default: break;
 		}
 	}
-}
 
-void Adaptor::OnDisconnection(Lancelot::ExchangeCode exchange_) { LOG(ERROR, "Exchange got disconnected : {}", static_cast<int>(exchange_)) }
+	void Adaptor::OnDisconnection(Lancelot::Exchange exchange_) { LOG(ERROR, "Exchange got disconnected : {}", Lancelot::toString(exchange_)) }
 
-void Adaptor::OnConnection(Lancelot::ExchangeCode exchange_) { LOG(INFO, "Exchange connected : {}", static_cast<int>(exchange_)) }
+	void Adaptor::OnConnection(Lancelot::Exchange exchange_) { LOG(INFO, "Exchange connected : {}", Lancelot::toString(exchange_)) }
+
+}  // namespace Lancelot::API

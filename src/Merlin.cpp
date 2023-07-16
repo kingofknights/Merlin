@@ -1,10 +1,10 @@
 #include "../include/Merlin.hpp"
 
+#include <Lancelot.hpp>
 #include <fstream>
 #include <nlohmann/json.hpp>
 
 #include "../include/Global.hpp"
-#include "../include/Logger.hpp"
 #include "../include/SocketServer.hpp"
 
 namespace details {

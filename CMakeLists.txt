@@ -27,46 +27,22 @@ find_package(SQLiteCpp REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system filesystem)
 include_directories(${Boost_INCLUDE_DIRS})
 
-include(FetchContent)
-FetchContent_Declare(
-        xcd
-        GIT_REPOSITORY https://github.com/kingofknights/xcd.git
-        OVERRIDE_FIND_PACKAGE
-)
+add_subdirectory(repo/Lancelot)
+add_subdirectory(repo/Greeks)
 
-FetchContent_GetProperties(xcd)
-if (NOT xcd_POPULATED)
-    FetchContent_Populate(xcd)
-    add_subdirectory(${xcd_SOURCE_DIR} ${xcd_BINARY_DIR})
-    include_directories(${xcd_SOURCE_DIR})
-    message(STATUS "xcd_SOURCE_DIR" ${xcd_SOURCE_DIR})
-    message(STATUS "xcd_BINARY_DIR" ${xcd_BINARY_DIR})
-endif ()
-
-FetchContent_Declare(
-        lancelot
-        GIT_REPOSITORY https://github.com/kingofknights/Lancelot.git
-        OVERRIDE_FIND_PACKAGE
-)
-
-FetchContent_GetProperties(lancelot)
-if (NOT lancelot_POPULATED)
-    FetchContent_Populate(lancelot)
-    add_subdirectory(${lancelot_SOURCE_DIR} ${lancelot_BINARY_DIR})
-    include_directories(${lancelot_SOURCE_DIR}/include)
-    message(STATUS "lancelot_SOURCE_DIR" ${lancelot_SOURCE_DIR})
-    message(STATUS "lancelot_BINARY_DIR" ${lancelot_BINARY_DIR})
-endif ()
+include_directories(repo/Lancelot/include/)
+include_directories(repo/Greeks/)
 
 add_subdirectory(API)
 add_subdirectory(include)
 add_subdirectory(src)
 
+
 add_executable(${PROJECT_NAME} main.cpp)
 target_link_libraries(${PROJECT_NAME} INTERFACE include)
 target_link_libraries(${PROJECT_NAME} PRIVATE source API)
-target_link_libraries(${PROJECT_NAME} PUBLIC fmt::fmt Boost::filesystem xcd)
-target_link_libraries(${PROJECT_NAME} PRIVATE Lancelot SQLiteCpp)
+target_link_libraries(${PROJECT_NAME} PUBLIC Boost::filesystem)
+target_link_libraries(${PROJECT_NAME} PRIVATE Lancelot Lancelot_API)
 
 
 add_subdirectory(Demo)

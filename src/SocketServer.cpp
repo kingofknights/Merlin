@@ -1,9 +1,9 @@
 #include "../include/SocketServer.hpp"
 
+#include <Lancelot.hpp>
 #include <boost/bind/bind.hpp>
 
 #include "../include/Connection.hpp"
-#include "../include/Logger.hpp"
 
 SocketServer::SocketServer(int port_) : _acceptor(_ioContext), _endpoint(boost::asio::ip::tcp::v4(), port_), _socket(_ioContext) {
 	_acceptor.open(_endpoint.protocol());
