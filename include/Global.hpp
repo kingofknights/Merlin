@@ -35,7 +35,9 @@ namespace Global {
 
 	void AdaptorLoader(ThreadGroupT& threadGroup_, std::string_view dll_, Lancelot::Exchange exchange_);
 
-	void AlgorithmLoader(std::string_view dll_, int pf_, const Lancelot::API::StrategyParamT& param_);
+	bool StrategyLoader(std::string_view name_, int strategy_, const Lancelot::API::StrategyParamT& param_);
+
+	bool StrategyParamUpdate(int strategy_, const Lancelot::API::StrategyParamT& param_);
 
 	std::string GetStrategyStatus(int strategy_);
 

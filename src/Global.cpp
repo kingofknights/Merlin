@@ -70,11 +70,37 @@ void Global::AdaptorLoader(ThreadGroupT& threadGroup_, std::string_view dll_, La
 	details::_globalAdaptorContainer.at(exchange_) = std::move(connection);
 }
 
-void Global::AlgorithmLoader(std::string_view dll_, int pf_, const Lancelot::API::StrategyParamT& param_) {
-	auto dll	   = std::make_unique<boost::dll::shared_library>(dll_.data(), boost::dll::load_mode::rtld_lazy);
+bool Global::StrategyLoader(std::string_view name_, int strategy_, const Lancelot::API::StrategyParamT& param_) {
+	if (not std::filesystem::exists(name_)) {
+		LOG(WARNING, "Strategy file not found : {}", name_)
+		return false;
+	}
+
+	auto dll = std::make_unique<boost::dll::shared_library>(name_.data(), boost::dll::load_mode::rtld_lazy);
+	if (not dll->is_loaded()) {
+		LOG(WARNING, "Strategy failed to load : {}", name_)
+		return false;
+	}
+
+	if (not dll->has(_globalSharedLibEntryFunctionName)) {
+		LOG(WARNING, "Strategy does not have request entry point : {} {}", name_, _globalSharedLibEntryFunctionName)
+		return false;
+	}
+
 	auto getObject = dll->get<StrategyPtrT(int, Lancelot::API::StrategyParamT)>(_globalSharedLibEntryFunctionName);
-	auto strategy  = std::invoke(getObject, pf_, param_);
-	details::_globalStrategyContainer.emplace(pf_, strategy);
+	auto strategy  = std::invoke(getObject, strategy_, param_);
+	auto success   = details::_globalStrategyContainer.emplace(strategy_, strategy);
+
+	return success.second;
+}
+
+bool Global::StrategyParamUpdate(int strategy_, const Lancelot::API::StrategyParamT& param_) {
+	const auto iterator = details::_globalStrategyContainer.find(strategy_);
+	if (iterator != details::_globalStrategyContainer.cend()) {
+		iterator->second->paramEvent(param_);
+		return true;
+	}
+	return false;
 }
 
 Lancelot::API::StockPacketPtrT Global::RegisterStockPacket(int token_, Lancelot::Side side_, const std::string& client_, const std::string& algo_, int ioc_, const StrategyPtrT& strategy_) {

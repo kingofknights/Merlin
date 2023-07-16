@@ -2,6 +2,15 @@
 
 #include <boost/asio.hpp>
 #include <memory>
+#include <unordered_map>
+
+namespace Lancelot {
+	struct CommunicationT;
+
+	namespace API {
+		using StrategyParamT = std::unordered_map<std::string, std::string>;
+	}
+}  // namespace Lancelot
 
 class Connection {
 public:
@@ -17,12 +26,26 @@ protected:
 	void handleWrite(const boost::system::error_code& error_, size_t size_);
 
 private:
+	void processQuery(const Lancelot::CommunicationT* communication_);
+
+	void subscribe(int strategy_, const std::string& name_, const Lancelot::API::StrategyParamT& param_);
+	void apply(int strategy_, const std::string& name_, const Lancelot::API::StrategyParamT& param_);
+	void unsubscribe(int strategy_, const std::string& name_, const Lancelot::API::StrategyParamT& param_);
+
+	void newOrder(const Lancelot::CommunicationT* communication_);
+	void modifyOrder(const Lancelot::CommunicationT* communication_);
+	void deleteOrder(const Lancelot::CommunicationT* communication_);
+
+private:
 	enum {
-		UNCOMPRESSION_BUFFER_SIZE = 2048
+		RAW_BUFFER_SIZE = 2048
 	};
-	size_t						 _size;
-	char*						 _buffer;
-	uint64_t					 _userId = 0;
+	unsigned char _rawBuffer[RAW_BUFFER_SIZE];
+	int			  _rawBufferSize = 0;
+	size_t		  _size;
+	char*		  _buffer;
+	uint64_t	  _userId = 0;
+
 	boost::asio::ip::tcp::socket _socket;
 	boost::system::error_code	 _errorCode;
 };

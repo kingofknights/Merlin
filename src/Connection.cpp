@@ -52,6 +52,7 @@ void Connection::handleRead(const boost::system::error_code& error_, size_t size
 		return;
 	}
 	const auto* request = reinterpret_cast<const Lancelot::CommunicationT*>(_buffer);
+	LOG(INFO, "Communication request {}", Lancelot::toString(static_cast<Lancelot::RequestType>(request->_query)))
 	switch (request->_query) {
 		case Lancelot::RequestType_LOGIN: {
 			LOG(INFO, "New Login Connection {} {}", request->_query, request->_user)
@@ -61,157 +62,33 @@ void Connection::handleRead(const boost::system::error_code& error_, size_t size
 			}
 			break;
 		};
-		case Lancelot::RequestType_NEW: {
-			unsigned char buffer[UNCOMPRESSION_BUFFER_SIZE]{};
-			int			  length = 0;
-			Lancelot::Decrypt((const unsigned char*)request->_encryptMessage, request->_encryptLength, buffer, &length);
-			std::stringstream ss;
-			ss << buffer;
-			nlohmann::json	newOrder = nlohmann::json::parse(ss);
-			nlohmann::json& params	 = newOrder.at(JSON_PARAMS);
 
-			int						 id		  = newOrder.at(JSON_ID).get<int>();
-			int						 token	  = params.at(JSON_TOKEN).get<int>();
-			float					 price	  = std::stof(params.at(JSON_PRICE).get<std::string>());
-			int						 quantity = params.at(JSON_QUANTITY).get<int>();
-			std::string				 client	  = params.at(JSON_CLIENT).get<std::string>();
-			Lancelot::Side			 side	  = params.at(JSON_SIDE).get<Lancelot::Side>();
-			Lancelot::API::OrderType type	  = params.at(JSON_ORDER_TYPE).get<Lancelot::API::OrderType>();
-
-			{
-				nlohmann::json response;
-				nlohmann::json param;
-				response[JSON_ID]		  = ++id;
-				param[JSON_PF_NUMBER]	  = request->_user;
-				param[JSON_TOKEN]		  = token;
-				param[JSON_UNIQUE_ID]	  = id;
-				param[JSON_QUANTITY]	  = quantity;
-				param[JSON_FILL_QUANTITY] = 0;
-				param[JSON_FILL_PRICE]	  = 0;
-				param[JSON_REMAINING]	  = quantity;
-				param[JSON_ORDER_ID]	  = (int)rand();
-				param[JSON_PRICE]		  = price;
-				param[JSON_SIDE]		  = side;
-				param[JSON_CLIENT]		  = client;
-				param[JSON_TIME]		  = TimeStampToHReadable(std::chrono::system_clock::now().time_since_epoch().count());
-				param[JSON_MESSAGE]		  = "New Order Sucess";
-				response[JSON_PARAMS]	  = param;
-
-				auto response_ = Lancelot::Encrypt(response.dump(), _userId, Lancelot::ResponseType_NEW);
-				writeAsync((char*)&response_, sizeof(Lancelot::CommunicationT));
-			}
-			break;
-		}
-		case Lancelot::RequestType_MODIFY: {
-			unsigned char buffer[UNCOMPRESSION_BUFFER_SIZE]{};
-			int			  length = 0;
-			Lancelot::Decrypt((const unsigned char*)request->_encryptMessage, request->_encryptLength, buffer, &length);
-			std::stringstream ss;
-			ss << buffer;
-
-			nlohmann::json	modifyOrder = nlohmann::json::parse(ss);
-			nlohmann::json& params		= modifyOrder.at(JSON_PARAMS);
-
-			int	  id		= modifyOrder.at(JSON_ID).get<int>();
-			float price		= std::stof(params.at(JSON_PRICE).get<std::string>());
-			int	  quantity	= params.at(JSON_QUANTITY).get<int>();
-			long  order_id	= params.at(JSON_ORDER_ID).get<long>();
-			int	  unique_id = params.at(JSON_UNIQUE_ID).get<int>();
-
-			break;
-		}
+		case Lancelot::RequestType_NEW:
+		case Lancelot::RequestType_MODIFY:
 		case Lancelot::RequestType_CANCEL: {
-			unsigned char buffer[UNCOMPRESSION_BUFFER_SIZE]{};
-			int			  length = 0;
-			Lancelot::Decrypt((const unsigned char*)request->_encryptMessage, request->_encryptLength, buffer, &length);
-			std::stringstream ss;
-			ss << buffer;
-
-			nlohmann::json	cancelOrder = nlohmann::json::parse(ss);
-			nlohmann::json& params		= cancelOrder.at(JSON_PARAMS);
-			int				id			= cancelOrder.at(JSON_ID).get<int>();
-			long			order_id	= params.at(JSON_ORDER_ID).get<long>();
-			int				unique_id	= params.at(JSON_UNIQUE_ID).get<int>();
-			LOG(INFO, "Cancel Order {} {} {}", id, order_id, unique_id)
-			break;
-		}
-		case Lancelot::RequestType_SUBSCRIBE: {
-			unsigned char buffer[UNCOMPRESSION_BUFFER_SIZE]{};
-			int			  length = 0;
-			Lancelot::Decrypt((const unsigned char*)request->_encryptMessage, request->_encryptLength, buffer, &length);
-			std::stringstream ss;
-			ss << buffer;
-			LOG(INFO, "Subscribe {}", ss.str())
-
-			nlohmann::json		  subscribe = nlohmann::json::parse(ss);
-			const nlohmann::json& params	= subscribe.at(JSON_PARAMS);
-			const nlohmann::json& arguments = params.at(JSON_ARGUMENTS);
-			int					  pf		= params.at(JSON_PF_NUMBER).get<int>();
-			std::string			  name		= params.at(JSON_STRATEGY_NAME).get<std::string>();
-
-			Lancelot::API::StrategyParamT strategyParam;
-			for (auto iterator = arguments.begin(); iterator != arguments.end(); ++iterator) {
-				strategyParam.emplace(iterator.key(), iterator.value().get<std::string>());
+			std::memset(_rawBuffer, '\0', _rawBufferSize);
+			switch (request->_query) {
+				case Lancelot::RequestType_NEW: {
+					newOrder(request);
+					break;
+				}
+				case Lancelot::RequestType_MODIFY: {
+					modifyOrder(request);
+					break;
+				}
+				case Lancelot::RequestType_CANCEL: {
+					deleteOrder(request);
+					break;
+				}
 			}
-			LOG(INFO, "Strategy subscribe {}", ss.str())
-			LOG(INFO, "PF {} Strategy {}", pf, name)
-			LOG(INFO, "Params {}", strategyParam)
-
-			std::string				 status	  = Global::GetStrategyStatus(pf);
-			Lancelot::CommunicationT response = Lancelot::Encrypt(status, _userId, Lancelot::ResponseType_SUBCRIBED);
-			writeAsync((char*)&response, sizeof(Lancelot::CommunicationT));
-			LOG(INFO, "response {}", status)
 			break;
 		}
-		case Lancelot::RequestType_APPLY: {
-			unsigned char buffer[UNCOMPRESSION_BUFFER_SIZE]{};
-			int			  length = 0;
-			Lancelot::Decrypt((const unsigned char*)request->_encryptMessage, request->_encryptLength, buffer, &length);
-			std::stringstream ss;
-			ss << buffer;
-			LOG(INFO, "Apply {}", ss.str())
 
-			nlohmann::json		  apply		= nlohmann::json::parse(ss);
-			const nlohmann::json& params	= apply.at(JSON_PARAMS);
-			const nlohmann::json& arguments = params.at(JSON_ARGUMENTS);
-			int					  pf		= params.at(JSON_PF_NUMBER).get<int>();
-			std::string			  name		= params.at(JSON_STRATEGY_NAME).get<std::string>();
-
-			Lancelot::API::StrategyParamT strategyParam;
-			for (auto iterator = arguments.begin(); iterator != arguments.end(); ++iterator) {
-				strategyParam.emplace(iterator.key(), iterator.value().get<std::string>());
-			}
-			LOG(INFO, "Strategy Apply {}", ss.str())
-			LOG(INFO, "PF {} Strategy {}", pf, name)
-			LOG(INFO, "Params {}", strategyParam)
-
-			std::string				 status	  = Global::GetStrategyStatus(pf);
-			Lancelot::CommunicationT response = Lancelot::Encrypt(status, _userId, Lancelot::ResponseType_APPLIED);
-			writeAsync((char*)&response, sizeof(Lancelot::CommunicationT));
-			LOG(INFO, "response {}", status)
-			break;
-		}
-		case Lancelot::RequestType_UNSUBSCRIBE: {
-			unsigned char buffer[UNCOMPRESSION_BUFFER_SIZE]{};
-			int			  length = 0;
-			Lancelot::Decrypt((const unsigned char*)request->_encryptMessage, request->_encryptLength, buffer, &length);
-			std::stringstream ss;
-			ss << buffer;
-			LOG(INFO, "Unsubscribe {}", ss.str())
-
-			nlohmann::json		  apply	 = nlohmann::json::parse(ss);
-			const nlohmann::json& params = apply.at(JSON_PARAMS);
-
-			int			pf	 = params.at(JSON_PF_NUMBER).get<int>();
-			std::string name = params.at(JSON_STRATEGY_NAME).get<std::string>();
-
-			LOG(INFO, "Strategy unsubscribe {}", ss.str())
-			LOG(INFO, "PF {} Strategy {}", pf, name)
-
-			std::string				 status	  = Global::GetStrategyStatus(pf);
-			Lancelot::CommunicationT response = Lancelot::Encrypt(status, _userId, Lancelot::ResponseType_UNSUBSCRIBED);
-			writeAsync((char*)&response, sizeof(Lancelot::CommunicationT));
-			LOG(INFO, "response {}", status)
+		case Lancelot::RequestType_SUBSCRIBE:
+		case Lancelot::RequestType_APPLY:
+		case Lancelot::RequestType_UNSUBSCRIBE:
+		case Lancelot::RequestType_SUBSCRIBE_APPLY: {
+			processQuery(request);
 			break;
 		}
 		default: break;
@@ -222,4 +99,125 @@ void Connection::handleWrite(const boost::system::error_code& error_, size_t siz
 	if (error_) {
 		LOG(WARNING, "{} {} {}", __FUNCTION__, error_.message(), size_)
 	}
+}
+void Connection::processQuery(const Lancelot::CommunicationT* communication_) {
+	std::memset(_rawBuffer, '\0', _rawBufferSize);
+	Lancelot::Decrypt((const unsigned char*)communication_->_encryptMessage, communication_->_encryptLength, _rawBuffer, &_rawBufferSize);
+	std::stringstream ss;
+	ss << _rawBuffer;
+	LOG(INFO, "Strategy request {} {}", Lancelot::toString(static_cast<Lancelot::RequestType>(communication_->_query)), ss.str())
+
+	const nlohmann::json  json		= nlohmann::json::parse(ss);
+	const nlohmann::json& params	= json.at(JSON_PARAMS);
+	const nlohmann::json& arguments = params.at(JSON_ARGUMENTS);
+	int					  strategy	= params.at(JSON_PF_NUMBER).get<int>();
+	std::string			  name		= params.at(JSON_STRATEGY_NAME).get<std::string>();
+
+	Lancelot::API::StrategyParamT strategyParam;
+	for (auto iterator = arguments.cbegin(); iterator != arguments.cend(); ++iterator) {
+		strategyParam.emplace(iterator.key(), iterator.value().get<std::string>());
+	}
+
+	switch (communication_->_query) {
+		case Lancelot::RequestType_APPLY: {
+			apply(strategy, name, strategyParam);
+			break;
+		}
+		case Lancelot::RequestType_SUBSCRIBE: {
+			subscribe(strategy, name, strategyParam);
+			break;
+		}
+		case Lancelot::RequestType_UNSUBSCRIBE: {
+			unsubscribe(strategy, name, strategyParam);
+			break;
+		}
+		case Lancelot::RequestType_SUBSCRIBE_APPLY: {
+			subscribe(strategy, name, strategyParam);
+			apply(strategy, name, strategyParam);
+			break;
+		}
+	}
+}
+void Connection::subscribe(int strategy_, const std::string& name_, const Lancelot::API::StrategyParamT& param_) {
+	if (Global::StrategyLoader(name_, strategy_, param_)) {
+		std::string				 status	  = Global::GetStrategyStatus(strategy_);
+		Lancelot::CommunicationT response = Lancelot::Encrypt(status, _userId, Lancelot::ResponseType_SUBCRIBED);
+		writeAsync((char*)&response, sizeof(Lancelot::CommunicationT));
+		LOG(INFO, "response {}", status)
+	}
+}
+void Connection::apply(int strategy_, const std::string& name_, const Lancelot::API::StrategyParamT& param_) {
+	if (Global::StrategyParamUpdate(strategy_, param_)) {
+		std::string				 status	  = Global::GetStrategyStatus(strategy_);
+		Lancelot::CommunicationT response = Lancelot::Encrypt(status, _userId, Lancelot::ResponseType_APPLIED);
+		writeAsync((char*)&response, sizeof(Lancelot::CommunicationT));
+		LOG(INFO, "response {}", status)
+	}
+}
+void Connection::unsubscribe(int strategy_, const std::string& name_, const Lancelot::API::StrategyParamT& param_) {}
+
+void Connection::newOrder(const Lancelot::CommunicationT* communication_) {
+	Lancelot::Decrypt((const unsigned char*)communication_->_encryptMessage, communication_->_encryptLength, _rawBuffer, &_rawBufferSize);
+	std::stringstream ss;
+	ss << _rawBuffer;
+	nlohmann::json	newOrder = nlohmann::json::parse(ss);
+	nlohmann::json& params	 = newOrder.at(JSON_PARAMS);
+
+	int						 id		  = newOrder.at(JSON_ID).get<int>();
+	int						 token	  = params.at(JSON_TOKEN).get<int>();
+	float					 price	  = std::stof(params.at(JSON_PRICE).get<std::string>());
+	int						 quantity = params.at(JSON_QUANTITY).get<int>();
+	std::string				 client	  = params.at(JSON_CLIENT).get<std::string>();
+	Lancelot::Side			 side	  = params.at(JSON_SIDE).get<Lancelot::Side>();
+	Lancelot::API::OrderType type	  = params.at(JSON_ORDER_TYPE).get<Lancelot::API::OrderType>();
+
+	{
+		nlohmann::json response;
+		nlohmann::json param;
+		response[JSON_ID]		  = ++id;
+		param[JSON_PF_NUMBER]	  = communication_->_user;
+		param[JSON_TOKEN]		  = token;
+		param[JSON_UNIQUE_ID]	  = id;
+		param[JSON_QUANTITY]	  = quantity;
+		param[JSON_FILL_QUANTITY] = 0;
+		param[JSON_FILL_PRICE]	  = 0;
+		param[JSON_REMAINING]	  = quantity;
+		param[JSON_ORDER_ID]	  = (int)rand();
+		param[JSON_PRICE]		  = price;
+		param[JSON_SIDE]		  = side;
+		param[JSON_CLIENT]		  = client;
+		param[JSON_TIME]		  = TimeStampToHReadable(std::chrono::system_clock::now().time_since_epoch().count());
+		param[JSON_MESSAGE]		  = "New Order Success";
+		response[JSON_PARAMS]	  = param;
+
+		auto response_ = Lancelot::Encrypt(response.dump(), _userId, Lancelot::ResponseType_NEW);
+		writeAsync((char*)&response_, sizeof(Lancelot::CommunicationT));
+	}
+}
+
+void Connection::modifyOrder(const Lancelot::CommunicationT* communication_) {
+	Lancelot::Decrypt((const unsigned char*)communication_->_encryptMessage, communication_->_encryptLength, _rawBuffer, &_rawBufferSize);
+	std::stringstream ss;
+	ss << _rawBuffer;
+
+	nlohmann::json	modifyOrder = nlohmann::json::parse(ss);
+	nlohmann::json& params		= modifyOrder.at(JSON_PARAMS);
+
+	int	  id		= modifyOrder.at(JSON_ID).get<int>();
+	float price		= std::stof(params.at(JSON_PRICE).get<std::string>());
+	int	  quantity	= params.at(JSON_QUANTITY).get<int>();
+	long  order_id	= params.at(JSON_ORDER_ID).get<long>();
+	int	  unique_id = params.at(JSON_UNIQUE_ID).get<int>();
+}
+void Connection::deleteOrder(const Lancelot::CommunicationT* communication_) {
+	Lancelot::Decrypt((const unsigned char*)communication_->_encryptMessage, communication_->_encryptLength, _rawBuffer, &_rawBufferSize);
+	std::stringstream ss;
+	ss << _rawBuffer;
+
+	nlohmann::json	cancelOrder = nlohmann::json::parse(ss);
+	nlohmann::json& params		= cancelOrder.at(JSON_PARAMS);
+	int				id			= cancelOrder.at(JSON_ID).get<int>();
+	long			order_id	= params.at(JSON_ORDER_ID).get<long>();
+	int				unique_id	= params.at(JSON_UNIQUE_ID).get<int>();
+	LOG(INFO, "Cancel Order {} {} {}", id, order_id, unique_id)
 }
