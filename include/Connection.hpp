@@ -6,6 +6,7 @@
 class Connection {
 public:
 	explicit Connection(boost::asio::ip::tcp::socket socket_);
+	~Connection();
 
 	void read();
 	void writeAsync(char* buffer_, size_t size_);
@@ -17,11 +18,11 @@ protected:
 
 private:
 	enum {
-		BUFFER_SIZE				  = 530,
 		UNCOMPRESSION_BUFFER_SIZE = 2048
 	};
+	size_t						 _size;
+	char*						 _buffer;
+	uint64_t					 _userId = 0;
 	boost::asio::ip::tcp::socket _socket;
 	boost::system::error_code	 _errorCode;
-	char						 _buffer[BUFFER_SIZE];
-	uint64_t					 _userId = 0;
 };

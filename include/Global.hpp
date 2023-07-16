@@ -1,25 +1,26 @@
 #pragma once
 
 #include <memory>
-#include <string>
-#include <string_view>
 #include <thread>
 #include <unordered_map>
 #include <vector>
 
 class Connection;
-class Strategy;
-struct OrderPacketT;
 
 namespace Lancelot {
-	enum SideType : int;
-	enum OrderRequest : int;
-	enum ExchangeCode : int;
-}  // namespace Lancelot
+	enum Side : int;
+	enum Exchange : int;
 
-using OrderPacketPtrT	 = std::shared_ptr<OrderPacketT>;
-using StrategyPtrT		 = std::shared_ptr<Strategy>;
-using StrategyParameterT = std::unordered_map<std::string, std::string>;
+	namespace API {
+		enum OrderRequest : int;
+		class StockPacket;
+		class Strategy;
+
+		using StockPacketPtrT = std::shared_ptr<StockPacket>;
+		using StrategyPtrT	  = std::shared_ptr<Strategy>;
+		using StrategyParamT  = std::unordered_map<std::string, std::string>;
+	}  // namespace API
+}  // namespace Lancelot
 
 using ThreadPointerT = std::unique_ptr<std::jthread>;
 using ThreadGroupT	 = std::vector<ThreadPointerT>;
@@ -32,13 +33,12 @@ namespace Global {
 
 	void EventReceiver(int token_);
 
-	void AdaptorLoader(ThreadGroupT& threadGroup_, std::string_view dll_, Lancelot::ExchangeCode exchange_);
+	void AdaptorLoader(ThreadGroupT& threadGroup_, std::string_view dll_, Lancelot::Exchange exchange_);
 
-	void AlgorithmLoader(std::string_view dll_, int pf_, const StrategyParameterT& param_);
+	void AlgorithmLoader(std::string_view dll_, int pf_, const Lancelot::API::StrategyParamT& param_);
 
-	std::string GetStrategyStatus(int pf_);
+	std::string GetStrategyStatus(int strategy_);
 
-	OrderPacketPtrT RegisterOrderPacket(int token_, Lancelot::SideType side_, const std::string& client_, const std::string& algo_, int ioc_, const StrategyPtrT& strategy_);
+	Lancelot::API::StockPacketPtrT RegisterStockPacket(int token_, Lancelot::Side side_, const std::string& client_, const std::string& algo_, int ioc_, const Lancelot::API::StrategyPtrT& strategy_);
 
-	void PlaceOrder(const OrderPacketPtrT& orderPacket_, int price_, int quantity_, Lancelot::OrderRequest request_);
 }  // namespace Global

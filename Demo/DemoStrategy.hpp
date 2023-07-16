@@ -1,14 +1,14 @@
 #pragma once
 
-#include "Strategy.hpp"
+#include "LancelotAPI.hpp"
 
-class DemoStrategy : public Strategy {
+class DemoStrategy : public Lancelot::API::Strategy {
 public:
-	DemoStrategy(int pf_, const StrategyParameterT& strategyParameter_);
-	void paramEvent(const StrategyParameterT& strategyParameter_) override;
+	DemoStrategy(int pf_, const Lancelot::API::StrategyParamT& strategyParameter_);
+	void paramEvent(const Lancelot::API::StrategyParamT& strategyParameter_) override;
 	void marketEvent(int token_) override;
 	void orderEvent(int uniqueID_) override;
 	void stopEvent() override;
 };
 
-extern StrategyPtrT getDriver(int pf_, const StrategyParameterT& param_);
+extern Lancelot::API::StrategyPtrT getObject(int strategy_, const Lancelot::API::StrategyParamT& param_);

@@ -1,12 +1,13 @@
 #include "../include/Global.hpp"
 
+#include <Lancelot.hpp>
+#include <LancelotAPI.hpp>
 #include <nlohmann/json.hpp>
 
-#include "../API/Adaptor.hpp"
-#include "../API/OrderUtility.hpp"
-#include "../API/Strategy.hpp"
 #include "../include/Connection.hpp"
 #include "../include/Structure.hpp"
+
+static constexpr char _globalSharedLibEntryFunctionName[] = "getObject";
 
 using ContainerPtrContainerT = std::unordered_map<uint64_t, const Connection*>;
 
@@ -52,64 +53,49 @@ void Global::EventReceiver(int token_) {
 	}
 }
 
-void Global::AdaptorLoader(ThreadGroupT& threadGroup_, std::string_view dll_, Lancelot::ExchangeCode exchange_) {
+void Global::AdaptorLoader(ThreadGroupT& threadGroup_, std::string_view dll_, Lancelot::Exchange exchange_) {
 	AdaptorConnectionT connection;
 	connection._sharedLibPtr = std::make_unique<boost::dll::shared_library>(dll_.data(), boost::dll::load_mode::rtld_lazy);
 	LOG(INFO, "Adaptor request to open is loaded [{}], filename [{}]", connection._sharedLibPtr->is_loaded(), dll_)
-	LOG(INFO, "Adaptor [{}] , looking for [{}] found [{}]", dll_, ENTRY_FUNCTION_NAME, connection._sharedLibPtr->has(ENTRY_FUNCTION_NAME))
+	LOG(INFO, "Adaptor [{}] , looking for [{}] found [{}]", dll_, _globalSharedLibEntryFunctionName, connection._sharedLibPtr->has(_globalSharedLibEntryFunctionName))
 
 	if (not connection._sharedLibPtr->is_loaded()) return;
-	if (not connection._sharedLibPtr->has(ENTRY_FUNCTION_NAME)) return;
+	if (not connection._sharedLibPtr->has(_globalSharedLibEntryFunctionName)) return;
 
-	auto getDriver = connection._sharedLibPtr->get<AdaptorPtrT(ThreadGroupT&)>(ENTRY_FUNCTION_NAME);
+	auto getObject = connection._sharedLibPtr->get<Lancelot::API::AdaptorPtrT(ThreadGroupT&)>(_globalSharedLibEntryFunctionName);
 
-	LOG(INFO, "Adaptor invoking the function [{}]", ENTRY_FUNCTION_NAME)
-	
-	connection._adaptorPtr						   = std::invoke(getDriver, threadGroup_);
+	LOG(INFO, "Adaptor invoking the function [{}]", _globalSharedLibEntryFunctionName)
+
+	connection._adaptorPtr						   = std::invoke(getObject, threadGroup_);
 	details::_globalAdaptorContainer.at(exchange_) = std::move(connection);
 }
 
-void Global::AlgorithmLoader(std::string_view dll_, int pf_, const StrategyParameterT& param_) {
+void Global::AlgorithmLoader(std::string_view dll_, int pf_, const Lancelot::API::StrategyParamT& param_) {
 	auto dll	   = std::make_unique<boost::dll::shared_library>(dll_.data(), boost::dll::load_mode::rtld_lazy);
-	auto getDriver = dll->get<StrategyPtrT(int, StrategyParameterT)>(ENTRY_FUNCTION_NAME);
-	auto strategy  = std::invoke(getDriver, pf_, param_);
+	auto getObject = dll->get<StrategyPtrT(int, Lancelot::API::StrategyParamT)>(_globalSharedLibEntryFunctionName);
+	auto strategy  = std::invoke(getObject, pf_, param_);
 	details::_globalStrategyContainer.emplace(pf_, strategy);
 }
 
-OrderPacketPtrT Global::RegisterOrderPacket(int token_, Lancelot::SideType side_, const std::string& client_, const std::string& algo_, int ioc_, const StrategyPtrT& strategy_) {
-	OrderPacketPtrT orderPacket			 = std::make_shared<OrderPacketT>();
-	orderPacket->_internal._resultSetPtr = Lancelot::ContractInfo::GetResultSet(token_);
-	orderPacket->_internal._strategyPtr	 = strategy_;
-	orderPacket->_internal._adaptorPtr	 = details::_globalAdaptorContainer[Lancelot::ContractInfo::GetExchange(token_)]._adaptorPtr;
-	orderPacket->_internal._uniqueId	 = ++details::_globalUniqueOrderPacketId;
+Lancelot::API::StockPacketPtrT Global::RegisterStockPacket(int token_, Lancelot::Side side_, const std::string& client_, const std::string& algo_, int ioc_, const StrategyPtrT& strategy_) {
+	Lancelot::API::StockPacketPtrT stockPacket = std::make_shared<Lancelot::API::StockPacket>();
+	stockPacket->setResultSetPtr(Lancelot::ContractInfo::GetResultSet(token_));
+	stockPacket->setStrategyPtr(strategy_);
+	stockPacket->setAdaptorPtr(details::_globalAdaptorContainer[Lancelot::ContractInfo::GetExchange(token_)]._adaptorPtr);
+	stockPacket->setUniqueClassIdentity(++details::_globalUniqueOrderPacketId);
 
-	OrderUtility::SetIoc(orderPacket, ioc_);
-	OrderUtility::SetPrice(orderPacket, 0);
-	OrderUtility::SetQuantity(orderPacket, 0);
-	OrderUtility::SetTotalQuantity(orderPacket, 0);
-	OrderUtility::SetLastPrice(orderPacket, 0);
-	OrderUtility::SetLastQuantity(orderPacket, 0);
-	OrderUtility::SetOrderNumber(orderPacket, 0);
-	OrderUtility::SetSide(orderPacket, side_);
-	OrderUtility::SetPF(orderPacket, 0);
-	OrderUtility::SetClientCode(orderPacket, client_);
-	OrderUtility::SetAlgoID(orderPacket, algo_);
-	OrderUtility::SetCurrentOrderStatus(orderPacket, OrderStatus_NONE);
-	OrderUtility::SetPreviousOrderStatus(orderPacket, OrderStatus_NONE);
+	stockPacket->setIoc(ioc_);
+	stockPacket->setPrice(0);
+	stockPacket->setQuantity(0);
+	stockPacket->setTotalQuantity(0);
+	stockPacket->setLastPrice(0);
+	stockPacket->setLastQuantity(0);
+	stockPacket->setOrderNumber(0);
+	stockPacket->setSide(side_);
+	stockPacket->setClientCode(client_);
+	stockPacket->setAlgoCode(algo_);
+	stockPacket->setCurrentStatus(Lancelot::API::OrderStatus_NONE);
+	stockPacket->setPreviousStatus(Lancelot::API::OrderStatus_NONE);
 
-	return orderPacket;
-}
-
-void Global::PlaceOrder(const OrderPacketPtrT& orderPacket_, int price_, int quantity_, Lancelot::OrderRequest request_) {
-	if (not orderPacket_->_internal._adaptorPtr) return;
-
-	auto orderStatus = OrderUtility::GetCurrentOrderStatus(orderPacket_);
-	OrderUtility::SetCurrentOrderStatus(orderPacket_, OrderStatus_PENDING);
-
-	if (orderPacket_->_internal._adaptorPtr->execute(orderPacket_, price_, quantity_, request_)) {
-		OrderUtility::SetPrice(orderPacket_, price_);
-		OrderUtility::SetQuantity(orderPacket_, quantity_);
-	} else {
-		OrderUtility::SetCurrentOrderStatus(orderPacket_, orderStatus);
-	}
+	return stockPacket;
 }
