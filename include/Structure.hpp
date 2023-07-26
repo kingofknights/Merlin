@@ -1,3 +1,5 @@
+#ifndef MERLIN_INCLUDE_STRUCTURE_HPP_
+#define MERLIN_INCLUDE_STRUCTURE_HPP_
 #pragma once
 
 #include <Lancelot.hpp>
@@ -35,3 +37,5 @@ using SocketServerPtrT	 = std::shared_ptr<SocketServer>;
 using StrategyPtrT		 = std::shared_ptr<Lancelot::API::Strategy>;
 using StrategyContainerT = std::unordered_map<int, StrategyPtrT>;
 using EventContainerT	 = std::unordered_map<int, StrategyContainerT>;
+
+#endif	// MERLIN_INCLUDE_STRUCTURE_HPP_

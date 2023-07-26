@@ -2,21 +2,22 @@
 
 #include <Lancelot.hpp>
 #include <fstream>
-#include <nlohmann/json.hpp>
 
 #include "../include/Global.hpp"
 #include "../include/SocketServer.hpp"
 
-namespace details {
+namespace MerlinShared {
 	extern AdaptorContainerT _globalAdaptorContainer;
 }
 Merlin::Merlin() : _socketServerPtr(std::make_shared<SocketServer>(9090)) {
 	LOG(INFO, "{}", __FUNCTION__)
+	Lancelot::ResultSetLoadingCallbackT callback = [](Lancelot::ResultSetPtrT, float, float, float) {};
+	Lancelot::ContractInfo::Initialize("ResultSet.db3", callback);
 	Global::AdaptorLoader(_threadGroup, "libDemoAdaptor.so", Lancelot::Exchange_NSE_FUTURE);
 }
 
 Merlin::~Merlin() {
-	for (auto& adaptorConnection : details::_globalAdaptorContainer) {
+	for (auto& adaptorConnection : MerlinShared::_globalAdaptorContainer) {
 		if (adaptorConnection._adaptorPtr) {
 			adaptorConnection._adaptorPtr.reset();
 		}

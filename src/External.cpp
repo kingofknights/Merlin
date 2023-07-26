@@ -1,10 +1,9 @@
 #include "../include/Structure.hpp"
 
-namespace details {
+namespace MerlinShared {
 	int				   _globalJsonResponseUniqueId;
-	int				   _globalUniqueOrderPacketId;
 	EventContainerT	   _globalEventContainer;
 	StrategyContainerT _globalStrategyContainer;
 	AdaptorContainerT  _globalAdaptorContainer;
 
-}  // namespace details
+}  // namespace MerlinShared

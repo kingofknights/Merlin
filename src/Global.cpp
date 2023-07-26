@@ -11,28 +11,27 @@ static constexpr char _globalSharedLibEntryFunctionName[] = "getObject";
 
 using ContainerPtrContainerT = std::unordered_map<uint64_t, const Connection*>;
 
-namespace details {
+namespace MerlinShared {
 	extern int					  _globalJsonResponseUniqueId;
-	extern int					  _globalUniqueOrderPacketId;
 	extern EventContainerT		  _globalEventContainer;
 	extern AdaptorContainerT	  _globalAdaptorContainer;
 	extern StrategyContainerT	  _globalStrategyContainer;
 	static ContainerPtrContainerT _globalContainerPtrContainer;
-}  // namespace details
+}  // namespace MerlinShared
 
-void Global::NewConnectionRequested(uint64_t loginID_, const Connection* connection_) { details::_globalContainerPtrContainer.insert_or_assign(loginID_, connection_); }
+void Global::NewConnectionRequested(uint64_t loginID_, const Connection* connection_) { MerlinShared::_globalContainerPtrContainer.insert_or_assign(loginID_, connection_); }
 
 void Global::ConnectionClosed(uint64_t loginID_) {
-	auto iterator = details::_globalContainerPtrContainer.find(loginID_);
-	if (iterator != details::_globalContainerPtrContainer.end()) {
+	auto iterator = MerlinShared::_globalContainerPtrContainer.find(loginID_);
+	if (iterator != MerlinShared::_globalContainerPtrContainer.end()) {
 		delete iterator->second;
-		details::_globalContainerPtrContainer.erase(iterator);
+		MerlinShared::_globalContainerPtrContainer.erase(iterator);
 	}
 }
 
 std::string Global::GetStrategyStatus(int pf_) {
 	nlohmann::json json;
-	json[JSON_ID] = ++details::_globalJsonResponseUniqueId;
+	json[JSON_ID] = ++MerlinShared::_globalJsonResponseUniqueId;
 
 	nlohmann::json params;
 	params[JSON_PF_NUMBER] = pf_;
@@ -42,8 +41,8 @@ std::string Global::GetStrategyStatus(int pf_) {
 }
 
 void Global::EventReceiver(int token_) {
-	const auto iterator = details::_globalEventContainer.find(token_);
-	if (iterator == details::_globalEventContainer.cend()) return;
+	const auto iterator = MerlinShared::_globalEventContainer.find(token_);
+	if (iterator == MerlinShared::_globalEventContainer.cend()) return;
 
 	auto& list = iterator->second;
 	for (const auto& [_, strategy_] : list) {
@@ -66,8 +65,8 @@ void Global::AdaptorLoader(ThreadGroupT& threadGroup_, std::string_view dll_, La
 
 	LOG(INFO, "Adaptor invoking the function [{}]", _globalSharedLibEntryFunctionName)
 
-	connection._adaptorPtr						   = std::invoke(getObject, threadGroup_);
-	details::_globalAdaptorContainer.at(exchange_) = std::move(connection);
+	connection._adaptorPtr								= std::invoke(getObject, threadGroup_);
+	MerlinShared::_globalAdaptorContainer.at(exchange_) = std::move(connection);
 }
 
 bool Global::StrategyLoader(std::string_view name_, int strategy_, const Lancelot::API::StrategyParamT& param_) {
@@ -89,26 +88,33 @@ bool Global::StrategyLoader(std::string_view name_, int strategy_, const Lancelo
 
 	auto getObject = dll->get<StrategyPtrT(int, Lancelot::API::StrategyParamT)>(_globalSharedLibEntryFunctionName);
 	auto strategy  = std::invoke(getObject, strategy_, param_);
-	auto success   = details::_globalStrategyContainer.emplace(strategy_, strategy);
+	auto success   = MerlinShared::_globalStrategyContainer.emplace(strategy_, strategy);
 
 	return success.second;
 }
 
 bool Global::StrategyParamUpdate(int strategy_, const Lancelot::API::StrategyParamT& param_) {
-	const auto iterator = details::_globalStrategyContainer.find(strategy_);
-	if (iterator != details::_globalStrategyContainer.cend()) {
+	const auto iterator = MerlinShared::_globalStrategyContainer.find(strategy_);
+	if (iterator != MerlinShared::_globalStrategyContainer.cend()) {
 		iterator->second->paramEvent(param_);
 		return true;
 	}
 	return false;
 }
 
+bool Global::StrategyStopRequest(int strategy_) {
+	const auto iterator = MerlinShared::_globalStrategyContainer.find(strategy_);
+	if (iterator != MerlinShared::_globalStrategyContainer.cend()) {
+		iterator->second->stopEvent();
+		return true;
+	}
+	return false;
+}
 Lancelot::API::StockPacketPtrT Global::RegisterStockPacket(int token_, Lancelot::Side side_, const std::string& client_, const std::string& algo_, int ioc_, const StrategyPtrT& strategy_) {
 	Lancelot::API::StockPacketPtrT stockPacket = std::make_shared<Lancelot::API::StockPacket>();
 	stockPacket->setResultSetPtr(Lancelot::ContractInfo::GetResultSet(token_));
 	stockPacket->setStrategyPtr(strategy_);
-	stockPacket->setAdaptorPtr(details::_globalAdaptorContainer[Lancelot::ContractInfo::GetExchange(token_)]._adaptorPtr);
-	stockPacket->setUniqueClassIdentity(++details::_globalUniqueOrderPacketId);
+	stockPacket->setAdaptorPtr(MerlinShared::_globalAdaptorContainer[Lancelot::ContractInfo::GetExchange(token_)]._adaptorPtr);
 
 	stockPacket->setIoc(ioc_);
 	stockPacket->setPrice(0);

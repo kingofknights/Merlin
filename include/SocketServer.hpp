@@ -1,3 +1,5 @@
+#ifndef MERLIN_INCLUDE_SOCKETSERVER_HPP_
+#define MERLIN_INCLUDE_SOCKETSERVER_HPP_
 #pragma once
 
 #include <boost/asio.hpp>
@@ -22,3 +24,4 @@ private:
 	boost::system::error_code	   _errorCode;
 	ConnectionPtrT				   _connection;
 };
+#endif	// MERLIN_INCLUDE_SOCKETSERVER_HPP_

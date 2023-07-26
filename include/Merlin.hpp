@@ -1,3 +1,5 @@
+#ifndef MERLIN_INCLUDE_MERLIN_HPP_
+#define MERLIN_INCLUDE_MERLIN_HPP_
 #pragma once
 #include <boost/asio.hpp>
 
@@ -19,3 +21,5 @@ private:
 	ThreadGroupT			_threadGroup;
 	boost::asio::io_context _ioContext;
 };
+
+#endif	// MERLIN_INCLUDE_MERLIN_HPP_

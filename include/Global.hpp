@@ -1,3 +1,5 @@
+#ifndef MERLIN_INCLUDE_GLOBAL_HPP_
+#define MERLIN_INCLUDE_GLOBAL_HPP_
 #pragma once
 
 #include <memory>
@@ -39,8 +41,12 @@ namespace Global {
 
 	bool StrategyParamUpdate(int strategy_, const Lancelot::API::StrategyParamT& param_);
 
+	bool StrategyStopRequest(int strategy_);
+
 	std::string GetStrategyStatus(int strategy_);
 
 	Lancelot::API::StockPacketPtrT RegisterStockPacket(int token_, Lancelot::Side side_, const std::string& client_, const std::string& algo_, int ioc_, const Lancelot::API::StrategyPtrT& strategy_);
 
 }  // namespace Global
+
+#endif	// MERLIN_INCLUDE_GLOBAL_HPP_

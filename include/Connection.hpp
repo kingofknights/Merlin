@@ -1,3 +1,5 @@
+#ifndef MERLIN_INCLUDE_CONNECTION_HPP_
+#define MERLIN_INCLUDE_CONNECTION_HPP_
 #pragma once
 
 #include <boost/asio.hpp>
@@ -29,8 +31,7 @@ private:
 	void processQuery(const Lancelot::CommunicationT* communication_);
 
 	void subscribe(int strategy_, const std::string& name_, const Lancelot::API::StrategyParamT& param_);
-	void apply(int strategy_, const std::string& name_, const Lancelot::API::StrategyParamT& param_);
-	void unsubscribe(int strategy_, const std::string& name_, const Lancelot::API::StrategyParamT& param_);
+	void apply(int strategy_, const Lancelot::API::StrategyParamT& param_);
 
 	void newOrder(const Lancelot::CommunicationT* communication_);
 	void modifyOrder(const Lancelot::CommunicationT* communication_);
@@ -40,12 +41,14 @@ private:
 	enum {
 		RAW_BUFFER_SIZE = 2048
 	};
-	unsigned char _rawBuffer[RAW_BUFFER_SIZE];
+	unsigned char _rawBuffer[RAW_BUFFER_SIZE]{};
 	int			  _rawBufferSize = 0;
-	size_t		  _size;
-	char*		  _buffer;
-	uint64_t	  _userId = 0;
+	size_t		  _size			 = 0;
+	char*		  _buffer		 = nullptr;
+	uint64_t	  _userId		 = 0;
 
 	boost::asio::ip::tcp::socket _socket;
 	boost::system::error_code	 _errorCode;
 };
+
+#endif	// MERLIN_INCLUDE_CONNECTION_HPP_

@@ -11,4 +11,4 @@ public:
 	void stopEvent() override;
 };
 
-extern Lancelot::API::StrategyPtrT getObject(int strategy_, const Lancelot::API::StrategyParamT& param_);
+extern "C" Lancelot::API::StrategyPtrT getObject(int strategy_, const Lancelot::API::StrategyParamT& param_);

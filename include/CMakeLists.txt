@@ -4,7 +4,7 @@ set(HEADER
         Connection.hpp
         Structure.hpp
         Global.hpp
-        )
+        ManualOrder.hpp)
 
 add_library(include INTERFACE ${HEADER})
 set_target_properties(include PROPERTIES LINKER_LANGUAGE CXX)
