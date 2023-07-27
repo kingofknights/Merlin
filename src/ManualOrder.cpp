@@ -11,7 +11,7 @@
 ManualOrder::ManualOrder(int strategy_) : Strategy(strategy_) {}
 void ManualOrder::paramEvent(const Lancelot::API::StrategyParamT& param_) {}
 void ManualOrder::marketEvent(int token_) {}
-void ManualOrder::orderEvent(int uniqueID_) {}
+void ManualOrder::orderEvent(int uniqueID_) { LOG(ERROR, "{} {}", __PRETTY_FUNCTION__, uniqueID_) }
 void ManualOrder::stopEvent() {}
 
 int ManualOrder::newOrder(int token_, Lancelot::Side side_, const std::string& client_, const std::string& algo_, int ioc_) {

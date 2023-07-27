@@ -47,7 +47,7 @@ void Global::EventReceiver(int token_) {
 	auto& list = iterator->second;
 	for (const auto& [_, strategy_] : list) {
 		if (strategy_->activated()) {
-			strategy_->marketEvent(token_);
+			strategy_->marketEventManager(token_);
 		}
 	}
 }
@@ -96,7 +96,7 @@ bool Global::StrategyLoader(std::string_view name_, int strategy_, const Lancelo
 bool Global::StrategyParamUpdate(int strategy_, const Lancelot::API::StrategyParamT& param_) {
 	const auto iterator = MerlinShared::_globalStrategyContainer.find(strategy_);
 	if (iterator != MerlinShared::_globalStrategyContainer.cend()) {
-		iterator->second->paramEvent(param_);
+		iterator->second->paramEventManager(param_);
 		return true;
 	}
 	return false;
@@ -105,7 +105,7 @@ bool Global::StrategyParamUpdate(int strategy_, const Lancelot::API::StrategyPar
 bool Global::StrategyStopRequest(int strategy_) {
 	const auto iterator = MerlinShared::_globalStrategyContainer.find(strategy_);
 	if (iterator != MerlinShared::_globalStrategyContainer.cend()) {
-		iterator->second->stopEvent();
+		iterator->second->stopEventManager();
 		return true;
 	}
 	return false;

@@ -1,3 +1,5 @@
+#include "Lancelot/API/Strategy/Strategy.hpp"
+
 #include "../include/Global.hpp"
 #include "../include/Structure.hpp"
 #include "LancelotAPI.hpp"
@@ -8,7 +10,34 @@ namespace MerlinShared {
 }  // namespace MerlinShared
 
 namespace Lancelot::API {
-	Strategy::Strategy(int strategy_) : _strategy(strategy_), _activated(false) { LOG(INFO, "New Strategy Requested {}", _strategy) }
+	Strategy::Strategy(int strategy_) : _strategy(strategy_), _activated(false), _mutex(PTHREAD_MUTEX_INITIALIZER) {
+		LOG(INFO, "New Strategy Requested {}", _strategy)
+		if (pthread_mutex_init(&_mutex, nullptr) != 0) {
+			LOG(ERROR, "unable to initialize the mutex for strategy [{}]", _strategy)
+		}
+	}
+
+	void Strategy::paramEventManager(const StrategyParamT& param_) {
+		if (pthread_mutex_lock(&_mutex)) {
+			paramEvent(param_);
+		}
+	}
+	void Strategy::marketEventManager(int token_) {
+		if (pthread_mutex_trylock(&_mutex)) {
+			marketEvent(token_);
+		}
+	}
+
+	void Strategy::orderEventManager(int uniqueID_) {
+		if (pthread_mutex_lock(&_mutex)) {
+			orderEvent(uniqueID_);
+		}
+	}
+	void Strategy::stopEventManager() {
+		if (pthread_mutex_lock(&_mutex)) {
+			stopEvent();
+		}
+	}
 
 	void Strategy::destroy() {
 		setActivated(false);
