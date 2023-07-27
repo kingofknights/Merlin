@@ -15,43 +15,52 @@ namespace Lancelot::API {
 		if (pthread_mutex_init(&_mutex, nullptr) != 0) {
 			LOG(ERROR, "unable to initialize the mutex for strategy [{}]", _strategy)
 		}
+		registerSelf();
 	}
+
+	Strategy::~Strategy() { pthread_mutex_destroy(&_mutex); }
 
 	void Strategy::paramEventManager(const StrategyParamT& param_) {
 		if (pthread_mutex_lock(&_mutex)) {
 			paramEvent(param_);
+			pthread_mutex_unlock(&_mutex);
 		}
 	}
 	void Strategy::marketEventManager(int token_) {
 		if (pthread_mutex_trylock(&_mutex)) {
 			marketEvent(token_);
+			pthread_mutex_unlock(&_mutex);
 		}
 	}
 
 	void Strategy::orderEventManager(int uniqueID_) {
 		if (pthread_mutex_lock(&_mutex)) {
 			orderEvent(uniqueID_);
+			pthread_mutex_unlock(&_mutex);
 		}
 	}
 	void Strategy::stopEventManager() {
 		if (pthread_mutex_lock(&_mutex)) {
 			stopEvent();
+			pthread_mutex_unlock(&_mutex);
 		}
 	}
 
 	void Strategy::destroy() {
 		setActivated(false);
 		MerlinShared::_globalStrategyContainer.erase(_strategy);
-		for (const auto& [_, container] : MerlinShared::_globalEventContainer) {
-			// TODO : Error here
-
-			MerlinShared::_globalEventContainer.erase(_strategy);
+		for (int token_ : _uniqueToken) {
+			const auto iterator = MerlinShared::_globalEventContainer.find(token_);
+			if (iterator != MerlinShared::_globalEventContainer.cend()) {
+				iterator->second.erase(_strategy);
+			}
 		}
 	}
 
 	StockPacketPtrT Strategy::getStockPacket(int token_, Side side_, const std::string& client_, const std::string& algo_, int ioc_, bool needEvent_) {
 		if (needEvent_) {
 			registerForData(token_);
+			_uniqueToken.emplace(token_);
 		}
 		return Global::RegisterStockPacket(token_, side_, client_, algo_, ioc_, shared_from_this());
 	}
@@ -68,7 +77,7 @@ namespace Lancelot::API {
 		}
 	}
 
-	void Strategy::registerSelf() { MerlinShared::_globalStrategyContainer.insert_or_assign(_strategy, shared_from_this()); }
+	void Strategy::registerSelf() { MerlinShared::_globalStrategyContainer.emplace(_strategy, shared_from_this()); }
 
 	bool Strategy::activated() const { return _activated; }
 
