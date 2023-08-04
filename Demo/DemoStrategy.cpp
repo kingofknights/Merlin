@@ -1,13 +1,16 @@
 #include "DemoStrategy.hpp"
 
+#include <Lancelot.hpp>
 DemoStrategy::DemoStrategy(int strategy_, const Lancelot::API::StrategyParamT& strategyParameter_) : Strategy(strategy_) { paramEvent(strategyParameter_); }
 
-void DemoStrategy::paramEvent(const Lancelot::API::StrategyParamT& strategyParameter_) {}
+DemoStrategy::~DemoStrategy() { LOG(ERROR, "{} {}", __FUNCTION__, getAddress()) }
+
+void DemoStrategy::paramEvent(const Lancelot::API::StrategyParamT& strategyParameter_) { LOG(WARNING, "{} {}", __FUNCTION__, strategyParameter_) }
 
 void DemoStrategy::marketEvent(int token_) {}
 
 void DemoStrategy::orderEvent(int uniqueID_) {}
 
-void DemoStrategy::stopEvent() {}
+void DemoStrategy::stopEvent() { destroy(); }
 
-Lancelot::API::StrategyPtrT getDriver(int strategy_, const Lancelot::API::StrategyParamT& param_) { return std::make_shared<DemoStrategy>(strategy_, param_); }
+Lancelot::API::StrategyPtrT getObject(int strategy_, const Lancelot::API::StrategyParamT& param_) { return std::make_shared<DemoStrategy>(strategy_, param_); }

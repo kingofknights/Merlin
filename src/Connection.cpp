@@ -1,30 +1,12 @@
 #include "../include/Connection.hpp"
 
+#include <Lancelot.hpp>
 #include <LancelotAPI.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/date_time/posix_time/ptime.hpp>
 #include <nlohmann/json.hpp>
 
 #include "../include/Global.hpp"
 #include "../include/ManualOrder.hpp"
 #include "../include/Structure.hpp"
-
-boost::posix_time::ptime AsPTime(uintmax_t ns_) {
-	return {
-		{1970, 1, 1},
-		  boost::posix_time::microseconds(ns_ / 1000)
-	 };
-}
-
-std::string TimeStampToHReadable(time_t time_) {
-	std::string time = boost::posix_time::to_iso_extended_string(AsPTime(time_ + 1.98e+13));
-	boost::algorithm::replace_first(time, "T", " ");
-	return time;
-}
-namespace MerlinShared {
-	using ManualOrderPtrT								= std::shared_ptr<ManualOrder>;
-	inline static ManualOrderPtrT _globalManualOrderPtr = std::make_shared<ManualOrder>(0);
-}  // namespace MerlinShared
 
 Connection::Connection(boost::asio::ip::tcp::socket socket_) : _size(sizeof(Lancelot::CommunicationT)), _buffer(new char[_size]), _socket(std::move(socket_)) {
 	_socket.set_option(boost::asio::ip::tcp::no_delay(true));
@@ -36,7 +18,10 @@ Connection::Connection(boost::asio::ip::tcp::socket socket_) : _size(sizeof(Lanc
 	read();
 }
 
-Connection::~Connection() { delete[] _buffer; }
+Connection::~Connection() {
+	delete[] _buffer;
+	LOG(WARNING, "{} {}", __PRETTY_FUNCTION__, _userId)
+}
 
 void Connection::read() {
 	boost::asio::async_read(_socket, boost::asio::buffer(_buffer, _size), boost::asio::transfer_exactly(_size),
@@ -63,7 +48,9 @@ void Connection::handleRead(const boost::system::error_code& error_, size_t size
 			LOG(INFO, "New Login Connection {} {}", request->_query, request->_user)
 			if (_userId == 0) {
 				_userId = request->_user;
-				Global::NewConnectionRequested(request->_user, this);
+				Global::NewConnectionRequested(request->_user, shared_from_this());
+				Global::AddressDemangler demangler(_userId, 9999);
+				_manualOrderPtr = std::make_shared<ManualOrder>(demangler.getAddress());
 			}
 			break;
 		};
@@ -112,12 +99,18 @@ void Connection::processQuery(const Lancelot::CommunicationT* communication_) {
 	ss << _rawBuffer;
 	LOG(INFO, "Strategy request {} {}", Lancelot::toString(static_cast<Lancelot::RequestType>(communication_->_query)), ss.str())
 
-	const nlohmann::json  json		= nlohmann::json::parse(ss);
-	const nlohmann::json& params	= json.at(JSON_PARAMS);
-	const nlohmann::json& arguments = params.at(JSON_ARGUMENTS);
-	int					  strategy	= params.at(JSON_PF_NUMBER).get<int>();
-	std::string			  name		= params.at(JSON_STRATEGY_NAME).get<std::string>();
+	const nlohmann::json  json	   = nlohmann::json::parse(ss);
+	const nlohmann::json& params   = json.at(JSON_PARAMS);
+	uint32_t			  strategy = params.at(JSON_PF_NUMBER).get<uint32_t>();
+	std::string			  name	   = FORMAT("lib{}.so", params.at(JSON_STRATEGY_NAME).get<std::string>());
 
+	if (communication_->_query == Lancelot::RequestType_UNSUBSCRIBE) {
+		Global::AddressDemangler demangler(_userId, strategy);
+		Global::StrategyStopRequest(demangler.getAddress());
+		return;
+	}
+
+	const nlohmann::json&		  arguments = params.at(JSON_ARGUMENTS);
 	Lancelot::API::StrategyParamT strategyParam;
 	for (auto iterator = arguments.cbegin(); iterator != arguments.cend(); ++iterator) {
 		strategyParam.emplace(iterator.key(), iterator.value().get<std::string>());
@@ -132,10 +125,6 @@ void Connection::processQuery(const Lancelot::CommunicationT* communication_) {
 			subscribe(strategy, name, strategyParam);
 			break;
 		}
-		case Lancelot::RequestType_UNSUBSCRIBE: {
-			Global::StrategyStopRequest(strategy);
-			break;
-		}
 		case Lancelot::RequestType_SUBSCRIBE_APPLY: {
 			subscribe(strategy, name, strategyParam);
 			apply(strategy, strategyParam);
@@ -143,18 +132,20 @@ void Connection::processQuery(const Lancelot::CommunicationT* communication_) {
 		}
 	}
 }
-void Connection::subscribe(int strategy_, const std::string& name_, const Lancelot::API::StrategyParamT& param_) {
-	if (Global::StrategyLoader(name_, strategy_, param_)) {
+void Connection::subscribe(uint32_t strategy_, const std::string& name_, const Lancelot::API::StrategyParamT& param_) {
+	Global::AddressDemangler demangler(_userId, strategy_);
+	if (Global::StrategyLoader(name_, demangler.getAddress(), param_)) {
 		std::string				 status	  = Global::GetStrategyStatus(strategy_);
-		Lancelot::CommunicationT response = Lancelot::Encrypt(status, _userId, Lancelot::ResponseType_SUBCRIBED);
+		Lancelot::CommunicationT response = Lancelot::Encrypt(status, demangler.getConnectionId(), Lancelot::ResponseType_SUBCRIBED);
 		writeAsync((char*)&response, sizeof(Lancelot::CommunicationT));
 		LOG(INFO, "response {}", status)
 	}
 }
-void Connection::apply(int strategy_, const Lancelot::API::StrategyParamT& param_) {
-	if (Global::StrategyParamUpdate(strategy_, param_)) {
+void Connection::apply(uint32_t strategy_, const Lancelot::API::StrategyParamT& param_) {
+	Global::AddressDemangler demangler(_userId, strategy_);
+	if (Global::StrategyParamUpdate(demangler.getAddress(), param_)) {
 		std::string				 status	  = Global::GetStrategyStatus(strategy_);
-		Lancelot::CommunicationT response = Lancelot::Encrypt(status, _userId, Lancelot::ResponseType_APPLIED);
+		Lancelot::CommunicationT response = Lancelot::Encrypt(status, demangler.getConnectionId(), Lancelot::ResponseType_APPLIED);
 		writeAsync((char*)&response, sizeof(Lancelot::CommunicationT));
 		LOG(INFO, "response {}", status)
 	}
@@ -175,10 +166,13 @@ void Connection::newOrder(const Lancelot::CommunicationT* communication_) {
 	Lancelot::Side			 side	  = params.at(JSON_SIDE).get<Lancelot::Side>();
 	Lancelot::API::OrderType type	  = params.at(JSON_ORDER_TYPE).get<Lancelot::API::OrderType>();
 
-	int classId = MerlinShared::_globalManualOrderPtr->newOrder(token, side, client, "", type == Lancelot::API::OrderType_IOC);
-	MerlinShared::_globalManualOrderPtr->placeOrder(classId, price, quantity, Lancelot::API::OrderRequest_NEW);
+	if (_manualOrderPtr) {
+		int classId = _manualOrderPtr->newOrder(token, side, client, "", type == Lancelot::API::OrderType_IOC);
+		// FIXME : set multiplier from resultSet
+		_manualOrderPtr->placeOrder(classId, price * 100, quantity, Lancelot::API::OrderRequest_NEW);
+	}
 
-	{
+	if (true) {
 		nlohmann::json response;
 		nlohmann::json param;
 		response[JSON_ID]		  = ++id;
@@ -193,12 +187,14 @@ void Connection::newOrder(const Lancelot::CommunicationT* communication_) {
 		param[JSON_PRICE]		  = price;
 		param[JSON_SIDE]		  = side;
 		param[JSON_CLIENT]		  = client;
-		param[JSON_TIME]		  = TimeStampToHReadable(std::chrono::system_clock::now().time_since_epoch().count());
+		param[JSON_TIME]		  = Global::TimeStampToHReadable(std::chrono::system_clock::now().time_since_epoch().count());
 		param[JSON_MESSAGE]		  = "New Order Success";
 		response[JSON_PARAMS]	  = param;
 
 		auto response_ = Lancelot::Encrypt(response.dump(), _userId, Lancelot::ResponseType_NEW);
-		writeAsync((char*)&response_, sizeof(Lancelot::CommunicationT));
+		// writeAsync((char*)&response_, sizeof(Lancelot::CommunicationT));
+		LOG(INFO, "{} Request {}", __FUNCTION__, ss.str())
+		LOG(INFO, "{} Response {}", __FUNCTION__, response.dump())
 	}
 }
 
@@ -216,7 +212,7 @@ void Connection::modifyOrder(const Lancelot::CommunicationT* communication_) {
 	long  order_id	= params.at(JSON_ORDER_ID).get<long>();
 	int	  unique_id = params.at(JSON_UNIQUE_ID).get<int>();
 
-	MerlinShared::_globalManualOrderPtr->placeOrder(unique_id, price, quantity, Lancelot::API::OrderRequest_MODIFY);
+	if (_manualOrderPtr) _manualOrderPtr->placeOrder(unique_id, price * 100.0F, quantity, Lancelot::API::OrderRequest_MODIFY);
 }
 void Connection::deleteOrder(const Lancelot::CommunicationT* communication_) {
 	Lancelot::Decrypt((const unsigned char*)communication_->_encryptMessage, communication_->_encryptLength, _rawBuffer, &_rawBufferSize);
@@ -229,5 +225,5 @@ void Connection::deleteOrder(const Lancelot::CommunicationT* communication_) {
 	long				  order_id	  = params.at(JSON_ORDER_ID).get<long>();
 	int					  unique_id	  = params.at(JSON_UNIQUE_ID).get<int>();
 	LOG(INFO, "Cancel Order {} {} {}", id, order_id, unique_id)
-	MerlinShared::_globalManualOrderPtr->placeOrder(unique_id, 0, 0, Lancelot::API::OrderRequest_CANCEL);
+	if (_manualOrderPtr) _manualOrderPtr->placeOrder(unique_id, 0, 0, Lancelot::API::OrderRequest_CANCEL);
 }

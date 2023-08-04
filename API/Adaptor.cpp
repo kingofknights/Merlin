@@ -1,5 +1,7 @@
+#include <Lancelot.hpp>
+#include <LancelotAPI.hpp>
+
 #include "../include/Structure.hpp"
-#include "LancelotAPI.hpp"
 
 namespace Lancelot::API {
 	void Adaptor::OrderResponse(const Lancelot::API::StockPacketPtrT& stockPacket_, OrderStatus status_) {}

@@ -6,10 +6,10 @@ target_include_directories(DemoAdaptor PUBLIC ../API)
 set_property(TARGET DemoAdaptor PROPERTY ENABLE_EXPORTS ON)
 
 
-add_library(DemoStrategy SHARED
+add_library(ButterFly SHARED
         DemoStrategy.cpp
         DemoStrategy.hpp)
 
-target_include_directories(DemoStrategy PUBLIC ../API)
-set_property(TARGET DemoStrategy PROPERTY ENABLE_EXPORTS ON)
+target_include_directories(ButterFly PUBLIC ../API)
+set_property(TARGET ButterFly PROPERTY ENABLE_EXPORTS ON)
 

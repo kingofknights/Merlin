@@ -1,9 +1,14 @@
 #ifndef MERLIN_INCLUDE_MERLIN_HPP_
 #define MERLIN_INCLUDE_MERLIN_HPP_
 #pragma once
-#include <boost/asio.hpp>
 
-#include "Structure.hpp"
+#include <boost/asio.hpp>
+#include <thread>
+
+class SocketServer;
+using SocketServerPtrT = std::shared_ptr<SocketServer>;
+using ThreadPointerT   = std::unique_ptr<std::jthread>;
+using ThreadGroupT	   = std::vector<ThreadPointerT>;
 
 class Merlin {
 public:

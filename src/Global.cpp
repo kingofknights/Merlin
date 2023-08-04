@@ -2,39 +2,75 @@
 
 #include <Lancelot.hpp>
 #include <LancelotAPI.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/date_time/posix_time/ptime.hpp>
 #include <nlohmann/json.hpp>
 
 #include "../include/Connection.hpp"
 #include "../include/Structure.hpp"
 
+template <class... Ts>
+struct overloaded : Ts... {
+	using Ts::operator()...;
+};
+
+template <class... Ts>
+overloaded(Ts...) -> overloaded<Ts...>;
+
 static constexpr char _globalSharedLibEntryFunctionName[] = "getObject";
 
-using ContainerPtrContainerT = std::unordered_map<uint64_t, const Connection*>;
+using ConnectionPtrContainerT = std::unordered_map<uint32_t, ConnectionPtrT>;
 
 namespace MerlinShared {
-	extern int					  _globalJsonResponseUniqueId;
-	extern EventContainerT		  _globalEventContainer;
-	extern AdaptorContainerT	  _globalAdaptorContainer;
-	extern StrategyContainerT	  _globalStrategyContainer;
-	static ContainerPtrContainerT _globalContainerPtrContainer;
+	extern int					   _globalJsonResponseUniqueId;
+	extern EventContainerT		   _globalEventContainer;
+	extern AdaptorContainerT	   _globalAdaptorContainer;
+	extern ArthurMessageQueueT	   _globalArthurMessageQueue;
+	extern StrategyContainerT	   _globalStrategyContainer;
+	static ConnectionPtrContainerT _globalConnectionPtrContainer;
 }  // namespace MerlinShared
 
-void Global::NewConnectionRequested(uint64_t loginID_, const Connection* connection_) { MerlinShared::_globalContainerPtrContainer.insert_or_assign(loginID_, connection_); }
+#define ADDRESS_DEMANGLER_CODE 10000
+Global::AddressDemangler::AddressDemangler(uint32_t address_) : _address(address_) {
+	_connectionId = address_ / ADDRESS_DEMANGLER_CODE;
+	_strategyId	  = address_ % ADDRESS_DEMANGLER_CODE;
+}
+Global::AddressDemangler::AddressDemangler(uint32_t connectionId_, uint32_t strategyId_) : _connectionId(connectionId_), _strategyId(strategyId_) {
+	_address = _connectionId * ADDRESS_DEMANGLER_CODE + _strategyId;
+}
+uint32_t Global::AddressDemangler::getConnectionId() const { return _connectionId; }
+uint32_t Global::AddressDemangler::getStrategyId() const { return _strategyId; }
+uint32_t Global::AddressDemangler::getAddress() const { return _address; }
 
-void Global::ConnectionClosed(uint64_t loginID_) {
-	auto iterator = MerlinShared::_globalContainerPtrContainer.find(loginID_);
-	if (iterator != MerlinShared::_globalContainerPtrContainer.end()) {
-		delete iterator->second;
-		MerlinShared::_globalContainerPtrContainer.erase(iterator);
-	}
+boost::posix_time::ptime AsPTime(uintmax_t ns_) {
+	return {
+		{1970, 1, 1},
+		  boost::posix_time::microseconds(ns_ / 1000)
+	 };
 }
 
-std::string Global::GetStrategyStatus(int pf_) {
+std::string Global::TimeStampToHReadable(time_t time_) {
+	std::string time = boost::posix_time::to_iso_extended_string(AsPTime(time_ + 1.98e+13));
+	boost::algorithm::replace_first(time, "T", " ");
+	return time;
+}
+
+void Global::NewConnectionRequested(uint32_t loginId_, const ConnectionPtrT& connection_) { MerlinShared::_globalConnectionPtrContainer.insert_or_assign(loginId_, connection_); }
+
+void Global::ConnectionClosed(uint32_t loginId_) { MerlinShared::_globalConnectionPtrContainer.erase(loginId_); }
+
+ConnectionPtrT Global::GetConnection(uint32_t loginId_) {
+	const auto iterator = MerlinShared::_globalConnectionPtrContainer.find(loginId_);
+	if (iterator != MerlinShared::_globalConnectionPtrContainer.cend()) return iterator->second;
+	return nullptr;
+}
+
+std::string Global::GetStrategyStatus(uint32_t strategy_) {
 	nlohmann::json json;
 	json[JSON_ID] = ++MerlinShared::_globalJsonResponseUniqueId;
 
 	nlohmann::json params;
-	params[JSON_PF_NUMBER] = pf_;
+	params[JSON_PF_NUMBER] = strategy_;
 
 	json[JSON_PARAMS] = params;
 	return json.dump();
@@ -69,7 +105,7 @@ void Global::AdaptorLoader(ThreadGroupT& threadGroup_, std::string_view dll_, La
 	MerlinShared::_globalAdaptorContainer.at(exchange_) = std::move(connection);
 }
 
-bool Global::StrategyLoader(std::string_view name_, int strategy_, const Lancelot::API::StrategyParamT& param_) {
+bool Global::StrategyLoader(std::string_view name_, uint32_t address_, const Lancelot::API::StrategyParamT& param_) {
 	if (not std::filesystem::exists(name_)) {
 		LOG(WARNING, "Strategy file not found : {}", name_)
 		return false;
@@ -87,13 +123,13 @@ bool Global::StrategyLoader(std::string_view name_, int strategy_, const Lancelo
 	}
 
 	auto getObject = dll->get<StrategyPtrT(int, Lancelot::API::StrategyParamT)>(_globalSharedLibEntryFunctionName);
-	auto strategy  = std::invoke(getObject, strategy_, param_);
-	auto success   = MerlinShared::_globalStrategyContainer.emplace(strategy_, strategy);
+	auto strategy  = std::invoke(getObject, address_, param_);
+	auto success   = MerlinShared::_globalStrategyContainer.emplace(address_, strategy);
 
 	return success.second;
 }
 
-bool Global::StrategyParamUpdate(int strategy_, const Lancelot::API::StrategyParamT& param_) {
+bool Global::StrategyParamUpdate(uint32_t strategy_, const Lancelot::API::StrategyParamT& param_) {
 	const auto iterator = MerlinShared::_globalStrategyContainer.find(strategy_);
 	if (iterator != MerlinShared::_globalStrategyContainer.cend()) {
 		iterator->second->paramEventManager(param_);
@@ -102,32 +138,84 @@ bool Global::StrategyParamUpdate(int strategy_, const Lancelot::API::StrategyPar
 	return false;
 }
 
-bool Global::StrategyStopRequest(int strategy_) {
-	const auto iterator = MerlinShared::_globalStrategyContainer.find(strategy_);
+bool Global::StrategyStopRequest(uint32_t address_) {
+	const auto iterator = MerlinShared::_globalStrategyContainer.find(address_);
 	if (iterator != MerlinShared::_globalStrategyContainer.cend()) {
 		iterator->second->stopEventManager();
 		return true;
 	}
 	return false;
 }
+void Global::StrategyStopCompleted(uint32_t address_) {}
+
 Lancelot::API::StockPacketPtrT Global::RegisterStockPacket(int token_, Lancelot::Side side_, const std::string& client_, const std::string& algo_, int ioc_, const StrategyPtrT& strategy_) {
 	Lancelot::API::StockPacketPtrT stockPacket = std::make_shared<Lancelot::API::StockPacket>();
 	stockPacket->setResultSetPtr(Lancelot::ContractInfo::GetResultSet(token_));
 	stockPacket->setStrategyPtr(strategy_);
 	stockPacket->setAdaptorPtr(MerlinShared::_globalAdaptorContainer[Lancelot::ContractInfo::GetExchange(token_)]._adaptorPtr);
 
+	stockPacket->setStrategyNumber(strategy_->getAddress());
+	stockPacket->setToken(token_);
 	stockPacket->setIoc(ioc_);
 	stockPacket->setPrice(0);
 	stockPacket->setQuantity(0);
-	stockPacket->setTotalQuantity(0);
-	stockPacket->setLastPrice(0);
-	stockPacket->setLastQuantity(0);
+	stockPacket->setTotalTradeQuantity(0);
+	stockPacket->setLastTradePrice(0);
+	stockPacket->setLastTradeQuantity(0);
 	stockPacket->setOrderNumber(0);
 	stockPacket->setSide(side_);
 	stockPacket->setClientCode(client_);
 	stockPacket->setAlgoCode(algo_);
+	stockPacket->setContractDescription(Lancelot::ContractInfo::GetDescription(token_));
 	stockPacket->setCurrentStatus(Lancelot::API::OrderStatus_NONE);
 	stockPacket->setPreviousStatus(Lancelot::API::OrderStatus_NONE);
 
 	return stockPacket;
+}
+auto Global::Serialize(const Lancelot::API::StockPacketPtrT& stockPacket_) -> std::string {
+	nlohmann::json param;
+	param[JSON_PF_NUMBER]	  = stockPacket_->getStrategyNumber();
+	param[JSON_UNIQUE_ID]	  = stockPacket_->getUniqueClassIdentity();
+	param[JSON_TOKEN]		  = stockPacket_->getToken();
+	param[JSON_QUANTITY]	  = stockPacket_->getQuantity();
+	param[JSON_FILL_QUANTITY] = stockPacket_->getLastTradeQuantity();
+	param[JSON_REMAINING]	  = stockPacket_->getQuantity() - stockPacket_->getLastTradeQuantity();
+	param[JSON_ORDER_ID]	  = stockPacket_->getOrderNumber();
+	param[JSON_PRICE]		  = stockPacket_->getPrice() / 100.0F;	// FIXME : divide with price multiplier
+	param[JSON_FILL_PRICE]	  = stockPacket_->getLastTradePrice();
+	param[JSON_SIDE]		  = stockPacket_->getSide();
+	param[JSON_CLIENT]		  = stockPacket_->getClientCode();
+	param[JSON_MESSAGE]		  = stockPacket_->getContractDescription();
+	param[JSON_TIME]		  = Global::TimeStampToHReadable(std::chrono::system_clock::now().time_since_epoch().count());
+
+	nlohmann::json json;
+	json[JSON_ID]	  = ++MerlinShared::_globalJsonResponseUniqueId;
+	json[JSON_PARAMS] = param;
+	return json.dump();
+}
+void Global::ArthurMessageManagerThread(const std::stop_token& stopToken_) {
+	while (not stopToken_.stop_requested()) {
+		if (MerlinShared::_globalArthurMessageQueue.read_available())
+			MerlinShared::_globalArthurMessageQueue.consume_all([&](const ArthurMessageTypeT& arthurMessageType_) {
+				std::visit(overloaded{[&](const Lancelot::API::StockPacketPtrT& stockPacket_) {
+							   LOG(WARNING, "{}", Global::Serialize(stockPacket_))
+							   Global::AddressDemangler demangler(stockPacket_->getStrategyNumber());
+							   const auto				iterator = MerlinShared::_globalConnectionPtrContainer.find(demangler.getConnectionId());
+							   if (iterator != MerlinShared::_globalConnectionPtrContainer.cend()) {
+								   Lancelot::ResponseType responseType;
+								   auto					  currentStatus = stockPacket_->getCurrentStatus();
+								   if (currentStatus == Lancelot::API::OrderStatus_NEW) {
+									   responseType = Lancelot::ResponseType_NEW;
+								   } else if (currentStatus == Lancelot::API::OrderStatus_REPLACED) {
+									   responseType = Lancelot::ResponseType_REPLACED;
+								   } else if (currentStatus == Lancelot::API::OrderStatus_CANCELLED) {
+									   responseType = Lancelot::ResponseType_CANCELLED;
+								   }
+								   auto response_ = Lancelot::Encrypt(Serialize(stockPacket_), demangler.getConnectionId(), responseType);
+								   iterator->second->writeAsync((char*)&response_, sizeof(Lancelot::CommunicationT));
+							   }
+						   }},
+						   arthurMessageType_);
+			});
+	}
 }

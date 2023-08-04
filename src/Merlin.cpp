@@ -5,15 +5,22 @@
 
 #include "../include/Global.hpp"
 #include "../include/SocketServer.hpp"
+#include "../include/Structure.hpp"
 
 namespace MerlinShared {
 	extern AdaptorContainerT _globalAdaptorContainer;
 }
+
 Merlin::Merlin() : _socketServerPtr(std::make_shared<SocketServer>(9090)) {
 	LOG(INFO, "{}", __FUNCTION__)
 	Lancelot::ResultSetLoadingCallbackT callback = [](Lancelot::ResultSetPtrT, float, float, float) {};
 	Lancelot::ContractInfo::Initialize("ResultSet.db3", callback);
 	Global::AdaptorLoader(_threadGroup, "libDemoAdaptor.so", Lancelot::Exchange_NSE_FUTURE);
+
+	{
+		auto thread = std::make_unique<std::jthread>(Global::ArthurMessageManagerThread);
+		_threadGroup.push_back(std::move(thread));
+	}
 }
 
 Merlin::~Merlin() {
@@ -38,6 +45,6 @@ void Merlin::import(std::string_view path_) {
 	if (not file.is_open()) {
 		LOG(ERROR, "Cannot open file : {}", path_);
 		LOG(ERROR, "Aborting...! {}", "!!!");
-		abort();
+		std::exit(EXIT_SUCCESS);
 	}
 }

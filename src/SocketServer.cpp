@@ -16,7 +16,7 @@ void SocketServer::startAccept() { _acceptor.async_accept(_socket, boost::bind(&
 
 void SocketServer::handleAccept(const boost::system::error_code& error_) {
 	if (!error_) {
-		new Connection(std::move(_socket));
+		_connection = std::make_shared<Connection>(std::move(_socket));
 	}
 	startAccept();
 }

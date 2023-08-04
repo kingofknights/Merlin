@@ -5,6 +5,7 @@
 class DemoStrategy : public Lancelot::API::Strategy {
 public:
 	DemoStrategy(int pf_, const Lancelot::API::StrategyParamT& strategyParameter_);
+	~DemoStrategy();
 	void paramEvent(const Lancelot::API::StrategyParamT& strategyParameter_) override;
 	void marketEvent(int token_) override;
 	void orderEvent(int uniqueID_) override;

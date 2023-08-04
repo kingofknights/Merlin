@@ -8,6 +8,7 @@
 #include <vector>
 
 class Connection;
+using ConnectionPtrT = std::shared_ptr<Connection>;
 
 namespace Lancelot {
 	enum Side : int;
@@ -29,24 +30,49 @@ using ThreadGroupT	 = std::vector<ThreadPointerT>;
 
 namespace Global {
 
-	void NewConnectionRequested(uint64_t loginID_, const Connection* connection_);
+	class AddressDemangler {
+	public:
+		explicit AddressDemangler(uint32_t address_);
+		explicit AddressDemangler(uint32_t connectionId_, uint32_t strategyId_);
 
-	void ConnectionClosed(uint64_t loginID_);
+		[[nodiscard]] uint32_t getConnectionId() const;
+		[[nodiscard]] uint32_t getStrategyId() const;
+		[[nodiscard]] uint32_t getAddress() const;
+
+	private:
+		uint32_t _connectionId;
+		uint32_t _strategyId;
+		uint32_t _address;
+	};
+
+	std::string TimeStampToHReadable(time_t time_);
+
+	void NewConnectionRequested(uint32_t loginId_, const ConnectionPtrT& connection_);
+
+	void ConnectionClosed(uint32_t loginId_);
+
+	ConnectionPtrT GetConnection(uint32_t loginId_);
 
 	void EventReceiver(int token_);
 
 	void AdaptorLoader(ThreadGroupT& threadGroup_, std::string_view dll_, Lancelot::Exchange exchange_);
 
-	bool StrategyLoader(std::string_view name_, int strategy_, const Lancelot::API::StrategyParamT& param_);
+	auto StrategyLoader(std::string_view name_, uint32_t address_, const Lancelot::API::StrategyParamT& param_) -> bool;
 
-	bool StrategyParamUpdate(int strategy_, const Lancelot::API::StrategyParamT& param_);
+	auto StrategyParamUpdate(uint32_t address_, const Lancelot::API::StrategyParamT& param_) -> bool;
 
-	bool StrategyStopRequest(int strategy_);
+	auto StrategyStopRequest(uint32_t address_) -> bool;
 
-	std::string GetStrategyStatus(int strategy_);
+	void StrategyStopCompleted(uint32_t address_);
 
-	Lancelot::API::StockPacketPtrT RegisterStockPacket(int token_, Lancelot::Side side_, const std::string& client_, const std::string& algo_, int ioc_, const Lancelot::API::StrategyPtrT& strategy_);
+	auto GetStrategyStatus(uint32_t strategy_) -> std::string;
 
+	auto Serialize(const Lancelot::API::StockPacketPtrT& stockPacket_) -> std::string;
+
+	auto RegisterStockPacket(int token_, Lancelot::Side side_, const std::string& client_, const std::string& algo_, int ioc_, const Lancelot::API::StrategyPtrT& strategy_)
+		-> Lancelot::API::StockPacketPtrT;
+
+	void ArthurMessageManagerThread(const std::stop_token& stopToken_);
 }  // namespace Global
 
 #endif	// MERLIN_INCLUDE_GLOBAL_HPP_
