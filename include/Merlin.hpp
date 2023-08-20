@@ -2,8 +2,9 @@
 #define MERLIN_INCLUDE_MERLIN_HPP_
 #pragma once
 
-#include <boost/asio.hpp>
+#include <memory>
 #include <thread>
+#include <vector>
 
 class SocketServer;
 using SocketServerPtrT = std::shared_ptr<SocketServer>;
@@ -22,9 +23,9 @@ protected:
 	void import(std::string_view path_);
 
 private:
-	SocketServerPtrT		_socketServerPtr;
-	ThreadGroupT			_threadGroup;
-	boost::asio::io_context _ioContext;
+	int				 _maxStrategyThread = 5;
+	SocketServerPtrT _socketServerPtr;
+	ThreadGroupT	 _threadGroup;
 };
 
 #endif	// MERLIN_INCLUDE_MERLIN_HPP_

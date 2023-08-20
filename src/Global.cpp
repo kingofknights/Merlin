@@ -28,6 +28,7 @@ namespace MerlinShared {
 	extern ArthurMessageQueueT	   _globalArthurMessageQueue;
 	extern StrategyContainerT	   _globalStrategyContainer;
 	static ConnectionPtrContainerT _globalConnectionPtrContainer;
+	extern boost::asio::io_context _globalStrategyThread;
 }  // namespace MerlinShared
 
 #define ADDRESS_DEMANGLER_CODE 10000
@@ -83,7 +84,7 @@ void Global::EventReceiver(int token_) {
 	auto& list = iterator->second;
 	for (const auto& [_, strategy_] : list) {
 		if (strategy_->activated()) {
-			strategy_->marketEventManager(token_);
+			MerlinShared::_globalStrategyThread.post([&]() { strategy_->marketEventManager(token_); });
 		}
 	}
 }
