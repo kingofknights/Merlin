@@ -31,6 +31,11 @@ add_subdirectory(repo/Lancelot)
 add_subdirectory(repo/Greeks)
 add_subdirectory(repo/Gawain)
 
+include_directories(${Boost_INCLUDE_DIRS})
+include_directories(repo/Lancelot/include/)
+include_directories(repo/Greeks/)
+include_directories(repo/Gawain/include)
+
 add_subdirectory(API)
 add_subdirectory(include)
 add_subdirectory(src)
@@ -38,10 +43,6 @@ add_subdirectory(src)
 add_executable(${PROJECT_NAME} main.cpp)
 target_link_libraries(${PROJECT_NAME} INTERFACE include)
 
-target_include_directories(${PROJECT_NAME} PRIVATE ${Boost_INCLUDE_DIRS})
-target_include_directories(${PROJECT_NAME} PRIVATE repo/Lancelot/include/)
-target_include_directories(${PROJECT_NAME} PRIVATE repo/Greeks/)
-target_include_directories(${PROJECT_NAME} PRIVATE repo/Gawain/include)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE source API)
 target_link_libraries(${PROJECT_NAME} PUBLIC Boost::filesystem)

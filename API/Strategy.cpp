@@ -1,7 +1,7 @@
-#include "Lancelot/API/Strategy/Strategy.hpp"
 
+
+#include <Gawain.hpp>
 #include <Lancelot.hpp>
-#include <LancelotAPI.hpp>
 
 #include "../include/Connection.hpp"
 #include "../include/Global.hpp"

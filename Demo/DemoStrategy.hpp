@@ -1,6 +1,6 @@
 #pragma once
 
-#include "LancelotAPI.hpp"
+#include "Gawain.hpp"
 
 class DemoStrategy : public Lancelot::API::Strategy {
 public:

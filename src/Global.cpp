@@ -1,7 +1,7 @@
 #include "../include/Global.hpp"
 
+#include <Gawain.hpp>
 #include <Lancelot.hpp>
-#include <LancelotAPI.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/date_time/posix_time/ptime.hpp>
 #include <nlohmann/json.hpp>

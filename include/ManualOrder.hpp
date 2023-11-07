@@ -6,7 +6,7 @@
 #define MERLIN_INCLUDE_MANUALORDER_HPP_
 #pragma once
 
-#include "LancelotAPI.hpp"
+#include "Gawain.hpp"
 
 class ManualOrder : public Lancelot::API::Strategy {
 public:

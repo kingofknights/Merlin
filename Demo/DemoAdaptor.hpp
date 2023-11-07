@@ -1,6 +1,6 @@
 #pragma once
 
-#include "LancelotAPI.hpp"
+#include "Gawain.hpp"
 
 class DemoAdaptor : public Lancelot::API::Adaptor {
 public:

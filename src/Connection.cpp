@@ -1,7 +1,7 @@
 #include "../include/Connection.hpp"
 
+#include <Gawain.hpp>
 #include <Lancelot.hpp>
-#include <LancelotAPI.hpp>
 #include <nlohmann/json.hpp>
 
 #include "../include/Global.hpp"
