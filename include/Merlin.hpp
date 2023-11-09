@@ -11,7 +11,7 @@ using SocketServerPtrT = std::shared_ptr<SocketServer>;
 using ThreadPointerT   = std::unique_ptr<std::jthread>;
 using ThreadGroupT	   = std::vector<ThreadPointerT>;
 
-class Merlin {
+class Merlin final {
 public:
 	Merlin();
 

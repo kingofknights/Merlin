@@ -31,22 +31,25 @@ add_subdirectory(repo/Lancelot)
 add_subdirectory(repo/Greeks)
 add_subdirectory(repo/Gawain)
 
-include_directories(${Boost_INCLUDE_DIRS})
-include_directories(repo/Lancelot/include/)
-include_directories(repo/Greeks/)
-include_directories(repo/Gawain/include)
-
 add_subdirectory(API)
 add_subdirectory(include)
 add_subdirectory(src)
 
 add_executable(${PROJECT_NAME} main.cpp)
 target_link_libraries(${PROJECT_NAME} INTERFACE include)
-
-
 target_link_libraries(${PROJECT_NAME} PRIVATE source API)
 target_link_libraries(${PROJECT_NAME} PUBLIC Boost::filesystem)
 target_link_libraries(${PROJECT_NAME} PRIVATE Lancelot Gawain)
 
-
 add_subdirectory(Demo)
+
+foreach (target "API" "source" ${PROJECT_NAME} "DemoAdaptor" "ButterFly")
+    target_include_directories(${target} PUBLIC ${Boost_INCLUDE_DIRS})
+    target_include_directories(${target} PRIVATE repo/Lancelot/include/)
+    target_include_directories(${target} PRIVATE repo/Greeks/)
+    target_include_directories(${target} PRIVATE repo/Gawain/include)
+endforeach ()
+
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/merlin.json ${PROJECT_BINARY_DIR}/
+)

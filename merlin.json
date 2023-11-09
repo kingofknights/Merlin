@@ -1,0 +1,10 @@
+{
+  "server": 9090,
+  "database": "ResultSet.db3",
+  "adaptors": [
+    {
+      "exchange": "Exchange_NSE_FUTURE",
+      "path": "libNSEAdaptor.so"
+    }
+  ]
+}
