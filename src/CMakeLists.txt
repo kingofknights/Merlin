@@ -8,3 +8,4 @@ set(SOURCES
 
 add_library(source ${SOURCES})
 target_link_libraries(source PUBLIC Lancelot Greeks)
+target_link_libraries(source INTERFACE project_options project_warnings)
