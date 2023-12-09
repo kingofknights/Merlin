@@ -2,6 +2,7 @@
 
 #include <Lancelot.hpp>
 #include <fstream>
+#include <iostream>
 #include <nlohmann/json.hpp>
 
 #include "../include/Global.hpp"
@@ -16,7 +17,7 @@ namespace MerlinShared {
 
 Merlin::Merlin() {
 	LOG(INFO, "{}", __FUNCTION__)
-	import("merlin.json");
+	load("merlin.json");
 	{
 		auto thread = std::make_unique<std::jthread>(Global::ArthurMessageManagerThread);
 		_threadGroup.push_back(std::move(thread));
@@ -52,10 +53,7 @@ void Merlin::run() {
 	_socketServerPtr->startAccept();
 	_socketServerPtr->runServer();
 }
-
-#include <iostream>
-
-void Merlin::import(std::string_view path_) {
+void Merlin::load(std::string_view path_) {
 	std::fstream file(path_.data(), std::ios::in);
 	if (not file.is_open()) {
 		LOG(ERROR, "Cannot open file : {}", path_);

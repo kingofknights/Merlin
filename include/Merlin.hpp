@@ -20,7 +20,7 @@ public:
 	void run();
 
 protected:
-	void import(std::string_view path_);
+	void load(std::string_view path_);
 
 private:
 	int				 _maxStrategyThread = 5;
