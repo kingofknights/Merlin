@@ -3,16 +3,16 @@
 #include "Gawain.hpp"
 
 class DemoAdaptor : public Lancelot::API::Adaptor {
-public:
-	DemoAdaptor(ThreadGroupT& threadGroup_);
+  public:
+    DemoAdaptor(Lancelot::ThreadGroupT& threadGroup_);
 
-	~DemoAdaptor() = default;
+    ~DemoAdaptor() = default;
 
-	void initialization(ThreadGroupT& threadContainer_) override;
+    void initialization(Lancelot::ThreadGroupT& threadContainer_) override;
 
-	void forwardAssemble(const Lancelot::API::StockPacketPtrT& order_) override;
+    void forwardAssemble(const Lancelot::API::StockPacketPtrT& order_) override;
 
-	bool execute(const Lancelot::API::StockPacketPtrT& order_, int price_, int quantity_, Lancelot::API::OrderRequest request_) override;
+    bool execute(const Lancelot::API::StockPacketPtrT& order_, int price_, int quantity_, Lancelot::API::OrderRequest request_) override;
 };
 
-extern "C" Lancelot::API::AdaptorPtrT getObject(ThreadGroupT& threadGroup_);
+extern "C" Lancelot::API::AdaptorPtrT getObject(Lancelot::ThreadGroupT& threadGroup_);

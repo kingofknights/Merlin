@@ -11,8 +11,8 @@ include(cmake/StandardProjectSettings.cmake)
 include(cmake/PreventInSourceBuilds.cmake)
 
 # Link this 'library' to set the c++ standard / compile-time options requested
-add_library(project_options INTERFACE)
-target_compile_features(project_options INTERFACE cxx_std_20)
+add_library(${PROJECT_NAME}_OPTIONS INTERFACE)
+target_compile_features(${PROJECT_NAME}_OPTIONS INTERFACE cxx_std_20)
 
 if (CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
     option(ENABLE_BUILD_WITH_TIME_TRACE "Enable -ftime-trace to generate time tracing .json files on clang" OFF)
@@ -22,7 +22,7 @@ if (CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
 endif ()
 
 # Link this 'library' to use the warnings specified in CompilerWarnings.cmake
-add_library(project_warnings INTERFACE)
+add_library(${PROJECT_NAME}_WARNINGS INTERFACE)
 
 # enable cache system
 set(ENABLE_CACHE OFF)
@@ -30,11 +30,11 @@ include(cmake/Cache.cmake)
 
 # standard compiler warnings
 include(cmake/CompilerWarnings.cmake)
-set_project_warnings(project_warnings)
+set_project_warnings(${PROJECT_NAME}_WARNINGS)
 
 # sanitizer options if supported by compiler
 include(cmake/Sanitizers.cmake)
-enable_sanitizers(project_options)
+enable_sanitizers(${PROJECT_NAME}_OPTIONS)
 
 # enable doxygen
 include(cmake/Doxygen.cmake)
@@ -52,7 +52,7 @@ if (ENABLE_PCH)
     #
     # consider breaking this out per project as necessary
     target_precompile_headers(
-            project_options
+            ${PROJECT_NAME}_OPTIONS
             INTERFACE
             <vector>
             <string>
@@ -93,7 +93,7 @@ target_link_libraries(${PROJECT_NAME} INTERFACE include)
 target_link_libraries(${PROJECT_NAME} PRIVATE source API)
 target_link_libraries(${PROJECT_NAME} PUBLIC Boost::filesystem)
 target_link_libraries(${PROJECT_NAME} PRIVATE Lancelot Gawain)
-target_link_libraries(${PROJECT_NAME} INTERFACE project_options project_warnings)
+target_link_libraries(${PROJECT_NAME} INTERFACE ${PROJECT_NAME}_OPTIONS ${PROJECT_NAME}_WARNINGS)
 
 add_subdirectory(Demo)
 
@@ -102,7 +102,7 @@ foreach (target "API" "source" ${PROJECT_NAME} "DemoAdaptor" "ButterFly")
     target_include_directories(${target} PRIVATE repo/Lancelot/include/)
     target_include_directories(${target} PRIVATE repo/Greeks/)
     target_include_directories(${target} PRIVATE repo/Gawain/include)
-    target_link_libraries(${target} INTERFACE project_options project_warnings)
+    target_link_libraries(${target} INTERFACE ${PROJECT_NAME}_OPTIONS ${PROJECT_NAME}_WARNINGS)
 endforeach ()
 
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD

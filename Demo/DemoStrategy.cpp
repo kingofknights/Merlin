@@ -7,7 +7,7 @@ DemoStrategy::~DemoStrategy() { LOG(ERROR, "{} {}", __FUNCTION__, getAddress()) 
 
 void DemoStrategy::paramEvent(const Lancelot::API::StrategyParamT& strategyParameter_) { LOG(WARNING, "{} {}", __FUNCTION__, strategyParameter_) }
 
-void DemoStrategy::marketEvent(int token_) {}
+void DemoStrategy::marketEvent(uint32_t token_) {}
 
 void DemoStrategy::orderEvent(int uniqueID_) {}
 

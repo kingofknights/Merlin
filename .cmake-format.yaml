@@ -1,8 +1,8 @@
 additional_commands:
   foo:
     flags:
-    - BAR
-    - BAZ
+      - BAR
+      - BAZ
     kwargs:
       DEPENDS: '*'
       HEADERS: '*'
