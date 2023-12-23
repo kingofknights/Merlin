@@ -14,7 +14,7 @@ extern ArthurMessageQueueT _globalArthurMessageQueue;
 }// namespace MerlinShared
 
 namespace Lancelot::API {
-Strategy::Strategy(int address_) : _address(address_), _activated(false), _mutex(PTHREAD_MUTEX_INITIALIZER) {
+Strategy::Strategy(int address_) : _activated(false), _address(address_), _mutex(PTHREAD_MUTEX_INITIALIZER) {
     LOG(INFO, "New Strategy Requested {}", _address)
     if (pthread_mutex_init(&_mutex, nullptr) != 0) {
         LOG(ERROR, "unable to initialize the mutex for strategy [{}]", _address)
@@ -60,7 +60,7 @@ void Strategy::destroy() {
     if (connection) {
         std::string              status   = Global::GetStrategyStatus(demangler.getStrategyId());
         Lancelot::CommunicationT response = Lancelot::Encrypt(status, demangler.getConnectionId(), Lancelot::ResponseType_UNSUBSCRIBED);
-        connection->writeAsync((char*)&response, sizeof(Lancelot::CommunicationT));
+        connection->writeAsync(reinterpret_cast<char*>(&response), sizeof(Lancelot::CommunicationT));
         LOG(INFO, "response {}", status)
     }
 }
@@ -87,9 +87,9 @@ void Strategy::registerForData(uint32_t token_) {
 
 void Strategy::registerSelf() { MerlinShared::_globalStrategyContainer.emplace(_address, shared_from_this()); }
 
-bool     Strategy::activated() const { return _activated; }
-void     Strategy::setActivated(bool activated_) { _activated = activated_; }
-uint32_t Strategy::getAddress() const { return _address; }
+bool Strategy::activated() const { return _activated; }
+void Strategy::setActivated(bool activated_) { _activated = activated_; }
+int  Strategy::getAddress() const { return _address; }
 
 void Strategy::updateArthur(const StockPacketPtrT& stockPacket_) {
     if (MerlinShared::_globalArthurMessageQueue.write_available()) {

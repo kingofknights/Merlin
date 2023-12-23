@@ -6,7 +6,7 @@ project(Merlin
         LANGUAGES C CXX
 )
 
-
+set(WARNINGS_AS_ERRORS FALSE)
 include(cmake/StandardProjectSettings.cmake)
 include(cmake/PreventInSourceBuilds.cmake)
 
@@ -80,9 +80,9 @@ find_package(SQLiteCpp REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system filesystem)
 
 
-add_subdirectory(repo/Lancelot)
-add_subdirectory(repo/Greeks)
-add_subdirectory(repo/Gawain)
+add_subdirectory(third_party/Lancelot)
+add_subdirectory(third_party/Greeks)
+add_subdirectory(third_party/Gawain)
 
 add_subdirectory(API)
 add_subdirectory(include)
@@ -99,9 +99,9 @@ add_subdirectory(Demo)
 
 foreach (target "API" "source" ${PROJECT_NAME} "DemoAdaptor" "ButterFly")
     target_include_directories(${target} PUBLIC ${Boost_INCLUDE_DIRS})
-    target_include_directories(${target} PRIVATE repo/Lancelot/include/)
-    target_include_directories(${target} PRIVATE repo/Greeks/)
-    target_include_directories(${target} PRIVATE repo/Gawain/include)
+    target_include_directories(${target} PRIVATE third_party/Lancelot/include/)
+    target_include_directories(${target} PRIVATE third_party/Greeks/)
+    target_include_directories(${target} PRIVATE third_party/Gawain/include)
     target_link_libraries(${target} INTERFACE ${PROJECT_NAME}_OPTIONS ${PROJECT_NAME}_WARNINGS)
 endforeach ()
 

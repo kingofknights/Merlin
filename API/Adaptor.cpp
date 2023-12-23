@@ -5,7 +5,8 @@
 #include "../include/Structure.hpp"
 
 namespace Lancelot::API {
-void Adaptor::OrderResponse(const Lancelot::API::StockPacketPtrT& stockPacket_, OrderStatus status_) {}
+void Adaptor::OrderResponse(const Lancelot::API::StockPacketPtrT&, OrderStatus) {
+}
 
 void Adaptor::OnDisconnection(Lancelot::Exchange exchange_) { LOG(ERROR, "Exchange got disconnected : {}", Lancelot::toString(exchange_)) }
 
