@@ -1,5 +1,4 @@
 
-
 #include <Gawain.hpp>
 #include <Lancelot.hpp>
 
@@ -14,7 +13,7 @@ extern ArthurMessageQueueT _globalArthurMessageQueue;
 }// namespace MerlinShared
 
 namespace Lancelot::API {
-Strategy::Strategy(int address_) : _activated(false), _address(address_), _mutex(PTHREAD_MUTEX_INITIALIZER) {
+Strategy::Strategy(uint32_t address_) : _activated(false), _address(address_), _mutex(PTHREAD_MUTEX_INITIALIZER) {
     LOG(INFO, "New Strategy Requested {}", _address)
     if (pthread_mutex_init(&_mutex, nullptr) != 0) {
         LOG(ERROR, "unable to initialize the mutex for strategy [{}]", _address)
@@ -48,7 +47,7 @@ void Strategy::stopEventManager() {
 void Strategy::destroy() {
     setActivated(false);
     MerlinShared::_globalStrategyContainer.erase(_address);
-    for (int token_ : _uniqueToken) {
+    for (uint32_t token_ : _uniqueToken) {
         const auto iterator = MerlinShared::_globalEventContainer.find(token_);
         if (iterator != MerlinShared::_globalEventContainer.cend()) {
             iterator->second.erase(_address);
@@ -87,9 +86,9 @@ void Strategy::registerForData(uint32_t token_) {
 
 void Strategy::registerSelf() { MerlinShared::_globalStrategyContainer.emplace(_address, shared_from_this()); }
 
-bool Strategy::activated() const { return _activated; }
-void Strategy::setActivated(bool activated_) { _activated = activated_; }
-int  Strategy::getAddress() const { return _address; }
+bool     Strategy::activated() const { return _activated; }
+void     Strategy::setActivated(bool activated_) { _activated = activated_; }
+uint32_t Strategy::getAddress() const { return _address; }
 
 void Strategy::updateArthur(const StockPacketPtrT& stockPacket_) {
     if (MerlinShared::_globalArthurMessageQueue.write_available()) {
